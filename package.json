@@ -1,0 +1,11 @@
+{
+  "name": "npuamd-qwen-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:qwen": "node tools/test_qwen_onnx.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.6"
+  }
+}

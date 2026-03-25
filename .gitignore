@@ -1,0 +1,13 @@
+.gh/
+.tools/
+.build/
+.cache/
+__pycache__/
+node_modules/
+
+runtime/ubuntu22/cache/
+runtime/ubuntu22/lib/
+runtime/ubuntu22/pythonlibs/
+runtime/ubuntu22/models/
+
+runtime/llm_linux/run_phi35/
