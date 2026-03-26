@@ -95,6 +95,8 @@ Leitura correta:
 - o primeiro transformer com offload real neste host ja existe
 - o caminho que funciona nesta tree Linux e `Quark XINT8 + DPU/DD`
 - o caminho VAIML/BF16 continua bloqueado pela ausencia de `libvaip-pass_vaiml_partition.so`
+- `NPU 416 / CPU 122` e contagem de operadores particionados por device, nao medicao de tempo
+- na medicao operacional atual do hub, esse encoder pequeno ainda nao ganha da CPU em latencia; o valor desta trilha hoje e prova de offload real, nao speedup
 
 ### 5. O que ainda nao vale como prova
 

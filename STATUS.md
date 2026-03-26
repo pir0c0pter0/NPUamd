@@ -288,6 +288,24 @@ Comparação com resultados anteriores:
 - `ResNet18 XINT8`: NPU 164 / CPU 2 (98.8% na NPU)
 - `Whisper encoder XINT8`: NPU 416 / CPU 122 (77.3% na NPU)
 
+Leitura correta de `NPU 416 / CPU 122`:
+
+- isso nao e benchmark de tempo; isso e particao de operadores por device no relatorio do EP
+- neste encoder, `416` ops foram para a NPU e `122` ficaram na CPU
+- isso prova offload real, mas nao prova speedup por si so
+
+Medição operacional rapida em `2026-03-26` com `runtime/whisper/sample_hf_1.flac` e o mesmo `tiny_en_encoder_xint8.onnx`:
+
+- CPU warm, com sessao reutilizada: cerca de `0.061 s` por inferencia
+- NPU warm, no runner nativo atual do hub com cache quente: cerca de `0.26 s` a `0.32 s` por inferencia
+- NPU cold na primeira execucao: cerca de `7.75 s` por causa de compile/cache
+
+Conclusão pratica desta medicao:
+
+- hoje, neste encoder pequeno, a CPU ainda esta mais rapida que a trilha NPU usada pelo hub
+- o ganho real desta trilha hoje e validacao de offload, nao ganho de latencia
+- isso nao invalida a NPU; apenas mostra que, no estado atual do runtime e deste modelo, offload e speedup ainda nao sao a mesma coisa
+
 Descobertas importantes desta rodada:
 
 - o caminho VAIML (BF16 para transformers) nao funciona nesta tree Linux porque `libvaip-pass_vaiml_partition.so` nao existe; apenas `libvaip-pass_vaiml.so` existe e nao faz partição
@@ -320,6 +338,7 @@ Leitura correta desta rodada:
 - o suporte basico a `2` inputs ja deixou de ser o bloqueio principal
 - o bloqueio agora e fazer o decoder sair de `CPU only`
 - sem isso, ainda nao existe prova final de Whisper completo na NPU
+- `CPU 934` significa que os `934` ops do decoder ficaram inteiros na CPU; isso e zero offload, nao apenas offload parcial fraco
 
 ### Whisper híbrido ponta a ponta com áudio real
 

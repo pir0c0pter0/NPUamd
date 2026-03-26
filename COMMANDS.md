@@ -282,6 +282,12 @@ Resultado esperado atual:
 - `runtime/whisper/cache/tiny_en_encoder_xint8/whisper_tiny_en_encoder_xint8/vitisai_ep_report.json` mostra `CPU 122` e `NPU 416`
 - o mesmo relatorio marca `Actually running on NPU` com contagem `21`
 
+Leitura correta desses numeros:
+
+- `NPU 416 / CPU 122` e particionamento de operadores, nao tempo
+- isso significa que `416` ops foram para a NPU e `122` ficaram na CPU
+- isso prova offload real, mas nao mede speedup por si so
+
 Inspeção rápida do relatório:
 
 ```bash
@@ -320,6 +326,7 @@ Leitura correta:
 - o decoder quantizado ja esta operacional no host
 - isso ainda nao prova offload real para NPU
 - o gap imediato do hub e fazer esse relatorio sair de `CPU only`
+- `CPU 934` significa zero offload: todos os `934` ops ficaram na CPU
 
 Inspeção rápida do relatório:
 
@@ -335,6 +342,20 @@ PY
 ```
 
 ## Pipeline de transcrição Whisper
+
+## Latência observada do Whisper encoder XINT8
+
+Medição operacional registrada em `2026-03-26` para `runtime/whisper/sample_hf_1.flac`:
+
+- CPU warm, com sessao reutilizada: cerca de `0.061 s`
+- NPU warm, no runner atual do hub com cache quente: cerca de `0.26 s` a `0.32 s`
+- NPU cold na primeira execucao: cerca de `7.75 s`
+
+Leitura correta:
+
+- no estado atual do hub, este encoder pequeno ainda nao ganha da CPU em latencia
+- o valor principal da trilha NPU hoje e prova de offload real
+- compile/cache da primeira execucao pesa bastante no caminho NPU
 
 Runner validado atual do hub:
 
