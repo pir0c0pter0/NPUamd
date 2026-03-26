@@ -266,31 +266,68 @@ Implicação:
 - mas ele agora tem um alvo operacional concreto
 - o bloqueio deixou de ser “nao existe fluxo oficial Linux” e passou a ser “falta materializar a instalacao Linux recente e os blobs reais do modelo”
 
+### Whisper encoder na NPU via XINT8
+
+Nesta retomada, o primeiro offload de transformer para a NPU foi provado no host Linux.
+
+Estado validado agora:
+
+- foi baixado o modelo `amd/whisper-tiny-en-onnx-npu` do HuggingFace
+- o encoder é FP32 com shapes estáticos `[1, 80, 3000]` → `[1, 1500, 384]`, 135 nós, opset 20
+- o encoder foi quantizado com `Quark XINT8` no container `vitis-ubuntu22-hub`
+- o modelo XINT8 resultante tem 7.9 MB (de 32 MB original)
+- o probe nativo no host rodou com sucesso usando o config `vaip_config_npu_2_3.json` (DPU/DD)
+- o relatório do EP mostra `NPU 416 / CPU 122`
+- os ops na NPU incluem: `Gemm(12)`, `MatMul(4)`, `Softmax(4)`, `Add(17)`, `Mul(8)`, `Reshape(48)`
+- os ops em CPU incluem: `LayerNormalization(9)`, `Gelu(6)`, `Conv(2)`
+- `subgraphStat` marca `Actually running on NPU`
+
+Comparação com resultados anteriores:
+
+- `ResNet18 XINT8`: NPU 164 / CPU 2 (98.8% na NPU)
+- `Whisper encoder XINT8`: NPU 416 / CPU 122 (77.3% na NPU)
+
+Descobertas importantes desta rodada:
+
+- o caminho VAIML (BF16 para transformers) nao funciona nesta tree Linux porque `libvaip-pass_vaiml_partition.so` nao existe; apenas `libvaip-pass_vaiml.so` existe e nao faz partição
+- o caminho que funciona é `XINT8 via Quark` + config DPU/DD (`vaip_config_npu_2_3.json`)
+- os modelos pre-built da AMD no HuggingFace (`amd/whisper-*-onnx-npu`) sao FP32 e esperam o caminho VAIML; sem esse plugin, nao vao para NPU
+- a estratégia correta nesta tree é quantizar primeiro com Quark XINT8 e usar o config DPU/DD
+
+Investigação sobre OGA para LLM:
+
+- AMD nao tem instalador Linux oficial para Ryzen AI Software (apenas Windows MSI)
+- a doc `llm_linux.html` assume que voce já tem `ryzen_ai-1.6.1/venv` mas nao explica como obter no Linux
+- os binários proprietários `libonnx_custom_ops.so`, `libryzen_mm.so`, `model_benchmark` nao existem em nenhum repo público
+- o OGA genérico do PyPI (0.9.2) estaticamente linka ORT sem VitisAI EP
+- o onnxruntime-genai v0.12.0 (fev 2026) mergeou suporte VitisAI EP + RyzenAI EP, mas nao existe wheel pré-compilada para Linux
+- alternativa promissora para LLM: `FastFlowLM` (runtime NPU-first, suporte Linux desde março 2026)
+
 ## Situação real neste momento
 
 - a NPU está visível no kernel
 - a stack Linux da AMD foi montada localmente com progresso real
 - já existe prova de sessão e inferência mínima também no host Linux, sem container
 - já existe prova de sessão e inferência mínima em container `Ubuntu 22.04`
-- já existe prova forte e reproduzível de offload real para NPU no host Linux
+- já existe prova forte e reproduzível de offload real para NPU no host Linux com CNN (ResNet18)
+- já existe prova forte e reproduzível de offload de transformer para NPU no host Linux (Whisper encoder)
 - já existe prova de LLM pequena rodando nativamente no host Linux, mas em CPU
-- ainda nao existe benchmark válido
-- ainda nao existe prova final de Whisper usando NPU
+- ainda nao existe benchmark válido de Whisper completo (encoder + decoder + transcrição real)
 - ainda nao existe prova final de LLM usando NPU
 - o hardware local foi confirmado como `STX/KRK`, nao `PHX/HPT`
-- o probe atual já passou do `Identity`, mas o melhor candidato sintético ainda fica `CPU 8`
-- o primeiro caminho validado de offload real é `resnet18_xint8_quark.onnx`
-- o checkpoint oficial AMD de ResNet ainda nao está disponível localmente porque continua como ponteiro `git-lfs`
+- o primeiro caminho validado de offload real para CNN é `resnet18_xint8_quark.onnx`
+- o segundo caminho validado de offload real para transformer é `tiny_en_encoder_xint8.onnx`
 - o runtime `OGA` ainda nao está materializado localmente em Linux
-- a trilha oficial `llm_linux` ja foi traduzida para um runner local no hub, mas ela ainda falha por falta da tree `RYZEN_AI_INSTALLATION_PATH` e dos blobs completos do modelo
+- o plugin `libvaip-pass_vaiml_partition.so` nao existe nesta tree; apenas o caminho XINT8+DPU funciona
 
 ## Prioridade imediata
 
-Os próximos 3 passos do hub devem ser:
+Os próximos passos do hub devem ser:
 
-1. manter `resnet18_xint8_quark.onnx` como baseline reproduzível para nao regredir o offload já provado
-2. fechar o runtime `OGA` no Linux usando primeiro o modelo oficial `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
-3. só depois subir para `Qwen` da coleção AMD `OGA/NPU` e medir limites reais de contexto, latência e fallback
+1. quantizar e testar o decoder Whisper com XINT8 para completar a prova de transcrição real na NPU
+2. montar pipeline completo de transcrição Whisper (encoder + decoder + tokenizer + áudio)
+3. investigar FastFlowLM como caminho alternativo para LLM na NPU no Linux
+4. manter baselines reproduzíveis para nao regredir
 
 ## Diretórios importantes
 
@@ -320,3 +357,10 @@ Os próximos 3 passos do hub devem ser:
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/ubuntu22/models/resnet18_fp32_opset13.onnx`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/ubuntu22/models/resnet18_xint8_quark.onnx`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/ubuntu22/cache/resnet18_xint8_quark/vitisai_ep_report.json`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/quantize_whisper_encoder_xint8.py`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_encoder_probe.sh`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_encoder_xint8_probe.sh`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_encoder.onnx`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_encoder_xint8.onnx`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_decoder.onnx`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/cache/tiny_en_encoder_xint8/whisper_tiny_en_encoder_xint8/vitisai_ep_report.json`

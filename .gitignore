@@ -11,3 +11,8 @@ runtime/ubuntu22/pythonlibs/
 runtime/ubuntu22/models/
 
 runtime/llm_linux/run_phi35/
+
+runtime/whisper/models/
+runtime/whisper/cache/
+runtime/whisper/probe_whisper
+runtime/whisper/probe_whisper_decoder

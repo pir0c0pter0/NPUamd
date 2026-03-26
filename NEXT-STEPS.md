@@ -1,79 +1,54 @@
 # Próximos Passos
 
-## Próximos 3 passos
+## Próximos passos
 
 Seguir esta ordem, sem desviar para CPU genérico:
 
-1. manter `ResNet18 XINT8` via `Quark` como baseline reproduzível do primeiro offload real no host Linux
-2. fechar o runtime `OGA` no Linux e testar primeiro o modelo oficial `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
-3. só depois testar `Qwen` da coleção AMD `OGA/NPU` e medir limites reais de contexto, TTFT, tokens/s, memória e fallback
+1. quantizar e testar o decoder Whisper (`tiny_en_decoder.onnx`) com XINT8 via Quark, usando o mesmo caminho DPU/DD que provou offload no encoder
+2. montar pipeline completo de transcrição Whisper (encoder + decoder + tokenizer + áudio real)
+3. investigar FastFlowLM como caminho alternativo para LLM na NPU no Linux
+4. manter baselines reproduzíveis para nao regredir (ResNet18 XINT8 + Whisper encoder XINT8)
 
-## Passo 1
+## Passo 1 — CNN na NPU (cumprido)
 
-Objetivo:
+- `ResNet18` quantizado por `Quark XINT8`: NPU 164 / CPU 2
+- baseline reproduzível: `tools/run_resnet18_xint8_quark_probe.sh`
 
-- sair do estado atual em que o provider sobe, mas o grafo mínimo cai todo em CPU
-- obter a primeira prova forte de offload real para a NPU
+## Passo 1b — Transformer na NPU (cumprido)
 
-Critério de sucesso:
+- Whisper encoder (`amd/whisper-tiny-en-onnx-npu`) quantizado com `Quark XINT8`: NPU 416 / CPU 122
+- primeiro transformer na NPU neste host Linux
+- caminho que funciona: `Quark XINT8` + `vaip_config_npu_2_3.json` (DPU/DD)
+- caminho VAIML (BF16) nao funciona nesta tree (falta `libvaip-pass_vaiml_partition.so`)
+- baseline reproduzível: `tools/run_whisper_encoder_xint8_probe.sh`
 
-- pelo menos parte do grafo atribuída ao `VitisAIExecutionProvider`
-- inferência reproduzível no host Linux
-
-Estado atualizado desta rodada:
-
-- o `probe_vitisai.c` já consegue rodar modelos ONNX reais, nao só `Identity`
-- um CNN sintético com `2 Conv` já foi testado nativamente no host
-- o `CNN` sintético continua em `CPU 8`, sem partição real
-- um `ResNet18` com `QDQ` padrão do ORT ainda fica em `CPU 199`
-- um `ResNet18` quantizado por `Quark XINT8` agora gera `NPU 164 / CPU 2`
-- o relatório `runtime/ubuntu22/cache/resnet18_xint8_quark/vitisai_ep_report.json` marca `Actually running on NPU 1`
-- o config BF16 mínimo do exemplo AMD falha nesta tree Linux local por plugin ausente: `libvaip-pass_vaiml_partition.so`
-
-Leitura correta:
-
-1. o passo 1 agora está cumprido
-2. nem todo `QDQ` genérico basta; a quantização `Quark XINT8` foi decisiva
-3. daqui em diante, `resnet18_xint8_quark.onnx` deve ser tratado como baseline para nao regredir
-
-## Passo 2
+## Passo 2 — Whisper completo na NPU (em progresso)
 
 Objetivo:
 
-- validar LLM real no caminho certo da AMD, em Linux, sem depender de modelo genérico
-- usar como primeira referência o fluxo oficial Linux da AMD para `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+- quantizar e provar decoder Whisper com XINT8 na NPU
+- montar pipeline completo: encoder + decoder + tokenizer + áudio real → transcrição
+
+Desafio técnico:
+
+- o decoder tem 2 inputs (`input_ids` + `encoder_hidden_states`), o probe C atual só suporta 1
+- precisa de probe Python ou extensão do probe C
+- a quantização XINT8 do decoder deve preservar a autogressão
 
 Critério de sucesso:
 
-- `OGA` carregando no Linux
-- primeira geração com modelo AMD de NPU ou hybrid
+- decoder com operadores na NPU (mesmo que parcial)
+- transcrição real de `.wav` usando NPU para encoder e decoder
 
-Estado atualizado desta rodada:
+## Passo 3 — LLM na NPU
 
-- o hardware local está na família suportada `STX/KRK`
-- porém o runtime `OGA` ainda nao está materializado localmente em Linux
-- a doc oficial atual da AMD ja tem uma pagina `Running LLM on Linux`
-- essa pagina usa como referencia o modelo `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
-- ela espera uma tree local `RYZEN_AI_INSTALLATION_PATH` com `deployment/lib/libonnx_custom_ops.so`, `libryzen_mm.so` e `model_benchmark`
-- essa tree ainda nao existe neste host
-- o clone cru do modelo `Phi-3.5` ainda vem em ponteiros `git-lfs` para os blobs reais
+OGA no Linux está bloqueado por falta de binários proprietários AMD.
 
-Conclusão prática:
+Caminhos possíveis:
 
-- o passo 2 continua sendo meta do hub
-- mas, antes de rodar `Phi-3.5`, é obrigatório materializar a instalacao Linux recente da AMD e os blobs reais do modelo
-
-## Passo 3
-
-Objetivo:
-
-- só depois de `Phi-3.5` subir, trocar para `Qwen` AMD da coleção `OGA/NPU`
-- medir o que a NPU entrega de verdade nesta máquina
-
-Critério de sucesso:
-
-- geração real com `Qwen` AMD no runtime correto
-- números básicos de contexto, latência, throughput e memória
+1. `FastFlowLM` (runtime NPU-first, suporte Linux desde 2026-03-11) — menor risco
+2. Build OGA v0.12+ from source com `--ort_home` apontando para AMD ORT 1.20.1
+3. Exportar LLM pequeno para ONNX + XINT8 via Quark + VitisAI EP direto (experimental)
 
 ## O que nao fazer
 
@@ -173,12 +148,13 @@ O uso real depende de:
 
 ## Meta de validação
 
-A primeira prova forte já foi obtida com:
+Provas fortes já obtidas:
 
-- `resnet18_xint8_quark.onnx` inferindo com `NPU 164 / CPU 2`
-- `subgraphStat` marcando `Actually running on NPU 1`
+- `resnet18_xint8_quark.onnx` inferindo com `NPU 164 / CPU 2` (CNN)
+- `tiny_en_encoder_xint8.onnx` inferindo com `NPU 416 / CPU 122` (transformer)
+- ambos marcam `Actually running on NPU`
 
-As próximas provas fortes a buscar agora sao:
+Próximas provas fortes a buscar:
 
-- um `Phi-3.5-mini-instruct` AMD rodando no Linux pelo caminho `OGA`
-- um `Qwen` AMD rodando no Linux pelo caminho `OGA`
+- transcrição real Whisper usando NPU (encoder + decoder completos)
+- LLM rodando na NPU via FastFlowLM ou VitisAI EP direto
