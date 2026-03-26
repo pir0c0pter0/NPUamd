@@ -2,18 +2,17 @@
 set -euo pipefail
 
 HUB_DIR="${HUB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-RUN_DIR="${RUN_DIR:-$HUB_DIR/runtime/llm_linux/run_phi35}"
+RUN_DIR="${RUN_DIR:-}"
 MODEL_NAME="${MODEL_NAME:-Phi-3.5-mini-instruct-onnx-ryzenai-npu}"
-DEFAULT_MODEL_DIR="$RUN_DIR/$MODEL_NAME"
-MODEL_DIR="${MODEL_DIR:-$DEFAULT_MODEL_DIR}"
+MODEL_DIR="${MODEL_DIR:-}"
 RYZEN_AI_VENV="${RYZEN_AI_VENV:-${RYZEN_AI_INSTALLATION_PATH:-}}"
 DEPLOYMENT_SRC="${DEPLOYMENT_SRC:-${RYZEN_AI_VENV:+$RYZEN_AI_VENV/deployment}}"
 MODEL_BENCHMARK_SRC="${MODEL_BENCHMARK_SRC:-${RYZEN_AI_VENV:+$RYZEN_AI_VENV/LLM/examples/model_benchmark}}"
 PROMPT_SRC="${PROMPT_SRC:-${RYZEN_AI_VENV:+$RYZEN_AI_VENV/LLM/examples/amd_genai_prompt.txt}}"
-DEPLOYMENT_DIR="$RUN_DIR/deployment"
-MODEL_BENCHMARK="$RUN_DIR/model_benchmark"
-DEFAULT_PROMPT_FILE="$RUN_DIR/amd_genai_prompt.txt"
-PROMPT_FILE="${PROMPT_FILE:-$DEFAULT_PROMPT_FILE}"
+DEPLOYMENT_DIR=""
+MODEL_BENCHMARK=""
+DEFAULT_PROMPT_FILE=""
+PROMPT_FILE="${PROMPT_FILE:-}"
 PROMPT_LENGTH="${PROMPT_LENGTH:-128}"
 PREPARE_ONLY=0
 FORCE_STAGE=0
@@ -37,17 +36,27 @@ require_dir() {
   fi
 }
 
-require_glob() {
+file_is_materialized() {
+  local path="$1"
+  [[ -f "$path" && -s "$path" ]] && ! is_lfs_pointer "$path"
+}
+
+glob_has_materialized_match() {
   local pattern="$1"
-  local label="$2"
   local matches=()
+  local match
   shopt -s nullglob
   matches=($pattern)
   shopt -u nullglob
   if ((${#matches[@]} == 0)); then
-    printf '[FAIL] missing %s matching: %s\n' "$label" "$pattern" >&2
-    exit 1
+    return 1
   fi
+  for match in "${matches[@]}"; do
+    if file_is_materialized "$match"; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 is_lfs_pointer() {
@@ -62,10 +71,73 @@ require_materialized_file() {
   local path="$1"
   local label="$2"
   require_file "$path" "$label"
+  if [[ ! -s "$path" ]]; then
+    printf '[FAIL] %s is empty: %s\n' "$label" "$path" >&2
+    exit 1
+  fi
   if is_lfs_pointer "$path"; then
     printf '[FAIL] %s is still a git-lfs pointer: %s\n' "$label" "$path" >&2
     exit 1
   fi
+}
+
+require_materialized_glob() {
+  local pattern="$1"
+  local label="$2"
+  if ! glob_has_materialized_match "$pattern"; then
+    printf '[FAIL] missing materialized %s matching: %s\n' "$label" "$pattern" >&2
+    exit 1
+  fi
+}
+
+require_executable_file() {
+  local path="$1"
+  local label="$2"
+  require_materialized_file "$path" "$label"
+  if [[ ! -x "$path" ]]; then
+    printf '[FAIL] %s is not executable: %s\n' "$label" "$path" >&2
+    exit 1
+  fi
+}
+
+finalize_paths() {
+  if [[ -z "$RUN_DIR" ]]; then
+    RUN_DIR="$HUB_DIR/runtime/llm_linux/run_phi35"
+  fi
+
+  DEPLOYMENT_DIR="$RUN_DIR/deployment"
+  MODEL_BENCHMARK="$RUN_DIR/model_benchmark"
+  DEFAULT_PROMPT_FILE="$RUN_DIR/amd_genai_prompt.txt"
+
+  if [[ -z "$PROMPT_FILE" ]]; then
+    PROMPT_FILE="$DEFAULT_PROMPT_FILE"
+  fi
+
+  if [[ -z "$MODEL_DIR" ]]; then
+    MODEL_DIR="$RUN_DIR/$MODEL_NAME"
+  fi
+}
+
+runtime_stage_needs_refresh() {
+  if [[ ! -d "$DEPLOYMENT_DIR" ]]; then
+    return 0
+  fi
+  if ! glob_has_materialized_match "$DEPLOYMENT_DIR/lib/libonnxruntime-genai.so*"; then
+    return 0
+  fi
+  if ! glob_has_materialized_match "$DEPLOYMENT_DIR/lib/libonnx_custom_ops.so*"; then
+    return 0
+  fi
+  if ! glob_has_materialized_match "$DEPLOYMENT_DIR/lib/libryzen_mm.so*"; then
+    return 0
+  fi
+  return 1
+}
+
+print_missing_runtime_help() {
+  printf '[FAIL] OGA runtime staging under %s is incomplete or still placeholder-only.\n' "$RUN_DIR" >&2
+  printf '[FAIL] expected non-empty deployment/lib/libonnxruntime-genai.so, libonnx_custom_ops.so, libryzen_mm.so, model_benchmark and prompt file.\n' >&2
+  printf '[FAIL] point RYZEN_AI_VENV/RYZEN_AI_INSTALLATION_PATH at the official Linux venv and rerun.\n' >&2
 }
 
 usage() {
@@ -74,6 +146,7 @@ Usage:
   bash tools/run_oga_llm_linux.sh [options] [-- extra model_benchmark args]
 
 Options:
+  --run-dir PATH         Run directory used for staged runtime + symlinked model
   --model-dir PATH       Path to the materialized AMD OGA model directory
   --prompt-length N      Prompt length passed to model_benchmark (default: 128)
   --prompt-file PATH     Prompt file passed to model_benchmark
@@ -91,6 +164,10 @@ EOF
 parse_args() {
   while (($# > 0)); do
     case "$1" in
+      --run-dir)
+        RUN_DIR="$2"
+        shift 2
+        ;;
       --model-dir)
         MODEL_DIR="$2"
         shift 2
@@ -129,41 +206,41 @@ parse_args() {
 }
 
 stage_runtime() {
-  if [[ -z "$RYZEN_AI_VENV" ]]; then
-    printf '[FAIL] missing RYZEN_AI_VENV/RYZEN_AI_INSTALLATION_PATH.\n' >&2
-    printf '[FAIL] the official Linux LLM flow expects a Ryzen AI venv such as <TARGET-PATH>/ryzen_ai-1.6.1/venv\n' >&2
-    exit 1
-  fi
-
-  require_dir "$RYZEN_AI_VENV" "Ryzen AI Linux venv"
-  require_dir "$DEPLOYMENT_SRC" "deployment source"
-  require_file "$MODEL_BENCHMARK_SRC" "model_benchmark source"
-  require_file "$PROMPT_SRC" "amd_genai_prompt.txt source"
-
   mkdir -p "$RUN_DIR"
 
-  if [[ "$FORCE_STAGE" -eq 1 && -d "$DEPLOYMENT_DIR" ]]; then
-    rm -rf "$DEPLOYMENT_DIR"
-  fi
+  if [[ "$FORCE_STAGE" -eq 1 ]] || runtime_stage_needs_refresh || ! file_is_materialized "$MODEL_BENCHMARK" || ! file_is_materialized "$PROMPT_FILE"; then
+    if [[ -z "$RYZEN_AI_VENV" ]]; then
+      print_missing_runtime_help
+      printf '[FAIL] missing RYZEN_AI_VENV/RYZEN_AI_INSTALLATION_PATH.\n' >&2
+      printf '[FAIL] the official Linux LLM flow expects a Ryzen AI venv such as <TARGET-PATH>/ryzen_ai-1.6.1/venv\n' >&2
+      exit 1
+    fi
 
-  if [[ ! -d "$DEPLOYMENT_DIR" ]]; then
+    require_dir "$RYZEN_AI_VENV" "Ryzen AI Linux venv"
+    require_dir "$DEPLOYMENT_SRC" "deployment source"
+    require_file "$MODEL_BENCHMARK_SRC" "model_benchmark source"
+    require_file "$PROMPT_SRC" "amd_genai_prompt.txt source"
+
+    if [[ -d "$DEPLOYMENT_DIR" ]]; then
+      rm -rf "$DEPLOYMENT_DIR"
+    fi
     cp -a "$DEPLOYMENT_SRC" "$DEPLOYMENT_DIR"
-  fi
-
-  if [[ "$FORCE_STAGE" -eq 1 || ! -f "$MODEL_BENCHMARK" ]]; then
     cp -f "$MODEL_BENCHMARK_SRC" "$MODEL_BENCHMARK"
     chmod +x "$MODEL_BENCHMARK"
-  fi
 
-  if [[ "$PROMPT_FILE" == "$DEFAULT_PROMPT_FILE" ]]; then
-    if [[ "$FORCE_STAGE" -eq 1 || ! -f "$DEFAULT_PROMPT_FILE" ]]; then
+    if [[ "$PROMPT_FILE" == "$DEFAULT_PROMPT_FILE" ]]; then
       cp -f "$PROMPT_SRC" "$DEFAULT_PROMPT_FILE"
+    elif [[ ! -f "$PROMPT_FILE" ]]; then
+      printf '[FAIL] custom prompt file does not exist: %s\n' "$PROMPT_FILE" >&2
+      exit 1
     fi
   fi
 
-  require_glob "$DEPLOYMENT_DIR/lib/libonnxruntime-genai.so*" "Linux OGA runtime"
-  require_glob "$DEPLOYMENT_DIR/lib/libonnx_custom_ops.so*" "Linux OGA custom ops library"
-  require_glob "$DEPLOYMENT_DIR/lib/libryzen_mm.so*" "Linux OGA custom allocator"
+  require_materialized_glob "$DEPLOYMENT_DIR/lib/libonnxruntime-genai.so*" "Linux OGA runtime"
+  require_materialized_glob "$DEPLOYMENT_DIR/lib/libonnx_custom_ops.so*" "Linux OGA custom ops library"
+  require_materialized_glob "$DEPLOYMENT_DIR/lib/libryzen_mm.so*" "Linux OGA custom allocator"
+  require_executable_file "$MODEL_BENCHMARK" "model_benchmark"
+  require_materialized_file "$PROMPT_FILE" "prompt file"
 }
 
 link_model_into_run_dir() {
@@ -199,8 +276,8 @@ patch_model_for_linux() {
 run_model_benchmark() {
   local runtime_ld_path
 
-  require_file "$PROMPT_FILE" "prompt file"
-  require_file "$MODEL_BENCHMARK" "model_benchmark"
+  require_materialized_file "$PROMPT_FILE" "prompt file"
+  require_executable_file "$MODEL_BENCHMARK" "model_benchmark"
 
   runtime_ld_path="$DEPLOYMENT_DIR/lib"
   if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
@@ -226,6 +303,7 @@ run_model_benchmark() {
 
 main() {
   parse_args "$@"
+  finalize_paths
   stage_runtime
   validate_model
   patch_model_for_linux

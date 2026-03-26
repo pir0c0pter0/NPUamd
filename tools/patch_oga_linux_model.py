@@ -13,12 +13,20 @@ def is_lfs_pointer(path: Path) -> bool:
     return first_line == "version https://git-lfs.github.com/spec/v1"
 
 
+def require_nonempty_file(path: Path, label: str) -> None:
+    if not path.is_file():
+        fail(f"missing {label}: {path}")
+    if path.stat().st_size == 0:
+        fail(f"{label} is empty: {path}")
+
+
 def fail(message: str) -> None:
     print(f"[FAIL] {message}", file=sys.stderr)
     raise SystemExit(1)
 
 
 def patch_genai_config(config_path: Path, custom_ops_library: str, aie_rope_flag: str) -> None:
+    require_nonempty_file(config_path, "genai_config.json")
     if is_lfs_pointer(config_path):
         fail(f"genai_config.json is still a git-lfs pointer: {config_path}")
 
@@ -36,8 +44,7 @@ def patch_genai_config(config_path: Path, custom_ops_library: str, aie_rope_flag
 
 
 def patch_meta_json(meta_path: Path) -> None:
-    if not meta_path.exists():
-        fail(f"missing OGA meta file: {meta_path}")
+    require_nonempty_file(meta_path, "OGA meta file")
     if is_lfs_pointer(meta_path):
         fail(f"OGA meta file is still a git-lfs pointer: {meta_path}")
 
@@ -76,8 +83,6 @@ def main() -> None:
 
     if not model_dir.is_dir():
         fail(f"missing model directory: {model_dir}")
-    if not config_path.is_file():
-        fail(f"missing genai_config.json: {config_path}")
 
     patch_genai_config(config_path, args.custom_ops_library, args.aie_rope_flag)
     patch_meta_json(meta_path)

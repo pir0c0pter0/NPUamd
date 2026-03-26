@@ -25,7 +25,8 @@ Hoje a resposta e:
 - nao, `Whisper` ainda nao esta fechado de ponta a ponta na NPU: o decoder XINT8 ja sobe, mas continua inteiro em CPU
 - sim, ja existe pipeline hibrido ponta a ponta com audio real usando encoder na NPU e decoder FP32 em CPU; hoje o melhor resultado validado ainda e parcial (`"I'm"` no `sample_hf_1.flac`)
 - nao, `LLM` ainda nao esta fechado com prova final de NPU neste host
-- o proximo trabalho imediato e recuperar a fidelidade do encoder XINT8 no pipeline hibrido; depois disso, voltar ao decoder/transcricao completa na NPU e retomar `OGA Linux` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+- o proximo trabalho imediato agora e fechar `OGA Linux` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`, depois subir `Qwen3-14B-onnx-ryzenai-1.7-hybrid` no caminho hibrido oficial AMD
+- em paralelo, a trilha `Qwen3` grande em GPU ja esta validada em container `ROCm/PyTorch`: com o split atual `64 GB iGPU / 64 GB CPU`, `Qwen3-14B` e `Qwen3-32B` carregam e geram de verdade na iGPU
 
 ## O que ja foi provado
 
@@ -128,9 +129,35 @@ No host atual ainda faltam:
 - `model_benchmark`
 - blobs reais `git-lfs` do modelo `Phi-3.5`
 
+Estado local importante desta rodada:
+
+- existe uma tree `runtime/llm_linux/run_phi35`
+- mas hoje `libonnxruntime-genai.so`, `libonnx_custom_ops.so`, `libryzen_mm.so`, `model_benchmark` e `amd_genai_prompt.txt` nela estao com `0` bytes
+- isso nao vale como runtime materializado
+- o runner do hub agora falha cedo nesse caso e exige restage a partir da tree Linux oficial
+
 Alternativa em observacao:
 
 - `FastFlowLM` como runtime NPU-first no Linux, caso `OGA` continue bloqueado por binarios proprietarios ausentes
+
+## Estado atual do Qwen3 em GPU
+
+Tambem ja existe uma trilha reproduzivel de `Qwen3` em GPU-only no host, mas ela depende de container `ROCm/PyTorch`, nao da stack oficial `OGA hybrid` da AMD.
+
+Estado validado agora:
+
+- o container `qwen3-gpu-pytorch` com `docker.io/rocm/pytorch:latest` sobe com acesso real a `/dev/kfd` e `/dev/dri`
+- `Qwen/Qwen3-4B` carrega e gera de verdade na iGPU
+- no teste medido atual do `Qwen3-4B`, o modelo carregou em cerca de `2.50 s`, gerou em cerca de `2.84 s`, bateu pico de `9.38 GiB` de VRAM, `87%` de `gpu_busy_percent` e cerca de `37 W`
+- no split antigo `96/32`, `Qwen/Qwen3-32B` morria por `OOM` e `Qwen/Qwen3-14B` entrava em swap pesada
+- no split atual `64/64`, `Qwen/Qwen3-14B` carrega em cerca de `12.10 s`, gera em cerca de `7.55 s`, bate pico de `28.96 GiB` de VRAM, `99%` de `gpu_busy_percent` e cerca de `34 W`
+- no split atual `64/64`, `Qwen/Qwen3-32B` carrega em cerca de `85.54 s`, gera em cerca de `13.12 s`, bate pico de `58.03 GiB` de VRAM, `98%` de `gpu_busy_percent` e cerca de `37 W`
+
+Leitura correta:
+
+- o gargalo real do `Qwen3` grande neste host nao era a VRAM
+- o gargalo real era a RAM visivel do lado CPU quando a BIOS estava em `96/32`
+- com `64/64`, `4B`, `14B` e `32B` ficam viaveis na trilha GPU-only em container
 
 ## Estrutura deste repositorio
 
@@ -155,6 +182,11 @@ Scripts principais:
 - `tools/whisper_encode_dump.c`
 - `tools/run_oga_llm_linux.sh`
 - `tools/patch_oga_linux_model.py`
+- `tools/run_qwen3_14b_hybrid.sh`
+- `tools/run_qwen3_gpu_container.sh`
+- `tools/run_qwen3_gpu_measured.sh`
+- `tools/run_qwen3_gpu_transformers.py`
+- `tools/monitor_apu_usage.sh`
 
 ## Melhor baseline hoje
 
@@ -162,8 +194,9 @@ Se eu precisasse retomar do zero com o menor risco tecnico, eu faria nesta ordem
 
 1. manter `resnet18_xint8_quark.onnx` como baseline reproduzivel do primeiro offload real
 2. manter `tiny_en_encoder_xint8.onnx` como baseline reproduzivel do primeiro transformer na NPU
-3. manter `tools/run_whisper_full_hybrid.sh` como trilha funcional atual e recuperar a fidelidade do encoder XINT8
-4. so depois retomar `OGA` em Linux usando primeiro `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+3. retomar `OGA` em Linux usando primeiro `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+4. subir `tools/run_qwen3_14b_hybrid.sh` como alvo oficial de LLM hibrido AMD
+5. so depois abrir a frente separada de `Qwen3` grande em GPU
 
 ## Repositorios AMD usados
 

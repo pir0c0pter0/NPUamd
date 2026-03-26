@@ -565,7 +565,7 @@ O que ele faz:
 - copia `deployment/`, `model_benchmark` e `amd_genai_prompt.txt` para `runtime/llm_linux/run_phi35`
 - aplica o patch Linux oficial em `genai_config.json`
 - normaliza barras em `.cache/MatMulNBits_2_0_meta.json`
-- falha cedo se a tree Linux da AMD ou os blobs reais do modelo ainda estiverem ausentes
+- falha cedo se a tree Linux da AMD, os blobs reais do modelo ou os binarios staged estiverem vazios
 
 Para rodar o benchmark quando a tree oficial e o modelo completo ja estiverem materializados:
 
@@ -580,6 +580,98 @@ Resultado esperado quando o ambiente estiver completo:
 - `model_benchmark` sobe com `LD_LIBRARY_PATH=deployment/lib`
 - o modelo `Phi-3.5` ja entra com patch Linux aplicado
 - aparece geracao real e metricas de prompt/token na linha oficial da AMD
+
+## Wrapper do `Qwen3-14B` híbrido oficial AMD
+
+Runner atual do hub:
+
+```bash
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_qwen3_14b_hybrid.sh \
+  --prepare-only
+```
+
+O que ele faz:
+
+- fixa `RUN_DIR=runtime/llm_linux/run_qwen3_14b_hybrid`
+- fixa `MODEL_NAME=Qwen3-14B-onnx-ryzenai-1.7-hybrid`
+- reaproveita o mesmo stage/patch do runner `OGA` generico
+
+Para apontar para o modelo materializado:
+
+```bash
+export MODEL_DIR=/caminho/para/Qwen3-14B-onnx-ryzenai-1.7-hybrid
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_qwen3_14b_hybrid.sh
+```
+
+Leitura correta:
+
+- este e o alvo oficial AMD para o passo seguinte depois de `Phi-3.5`
+- ele depende da mesma tree Linux `RYZEN_AI_INSTALLATION_PATH`
+- no host atual, o erro correto agora e:
+  `missing RYZEN_AI_VENV/RYZEN_AI_INSTALLATION_PATH`
+
+## Preflight do `Qwen3` grande em GPU
+
+Checker atual do hub:
+
+```bash
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/check_qwen3_gpu_env.sh
+```
+
+O que ele checa:
+
+- `MemTotal` visivel ao CPU
+- VRAM exposta pelo kernel `amdgpu`
+- presenca de `/dev/kfd` e `/dev/dri/renderD128`
+- presenca de `torch`, `transformers`, `accelerate`
+- presenca de `rocminfo`
+
+Resultado esperado hoje:
+
+- o kernel ja reporta `98304M` de VRAM na iGPU
+- os device nodes existem
+- o checker do host ainda falha por falta de stack `ROCm/PyTorch` no user-space local
+- isso nao invalida a trilha em container, que ja foi validada separadamente
+
+## Runner do `Qwen3` em GPU via container ROCm
+
+Runner simples atual:
+
+```bash
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_qwen3_gpu_container.sh
+```
+
+O que ele faz:
+
+- garante o container `qwen3-gpu-pytorch`
+- instala `transformers`, `accelerate`, `sentencepiece` e `safetensors`
+- roda `tools/run_qwen3_gpu_transformers.py` dentro de `docker.io/rocm/pytorch:latest`
+
+Resultado esperado hoje:
+
+- `Qwen/Qwen3-4B` carrega e gera de verdade na iGPU
+
+## Runner medido do `Qwen3` em GPU
+
+Runner reproduzível atual:
+
+```bash
+MODEL_ID='Qwen/Qwen3-4B' MAX_NEW_TOKENS=32 \
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_qwen3_gpu_measured.sh
+```
+
+O que ele faz:
+
+- chama o runner ROCm em container
+- resolve o PID real do `python3` no host
+- coleta CSV com `cpu_pct`, `rss_mib`, `gpu_busy_pct`, `gpu_vram_used_gib`, `gpu_power_w` e estado da NPU
+- grava log e CSV em `runtime/gpu_runs/`
+
+Leitura correta dos testes atuais:
+
+- `Qwen3-4B` fecha limpo: cerca de `9.38 GiB` de VRAM, pico de `87%` de `gpu_busy_percent`, cerca de `37 W`
+- no split antigo `96/32`, `Qwen3-14B` entra em swap pesada e `Qwen3-32B` morre por `OOM`
+- no split atual `64/64`, `Qwen3-14B` fecha com cerca de `28.96 GiB` de VRAM e `Qwen3-32B` fecha com cerca de `58.03 GiB` de VRAM
 
 ## Verificação de placeholder `git-lfs` do `Phi-3.5`
 
@@ -612,6 +704,6 @@ Leitura correta:
 Ao retomar depois de limpar a conversa, seguir esta ordem:
 
 1. manter `tools/run_resnet18_xint8_quark_probe.sh` e `tools/run_whisper_encoder_xint8_probe.sh` como baselines que nao podem regredir
-2. usar `tools/run_whisper_decoder_xint8_probe.sh` para tirar o decoder Whisper de `CPU only`
-3. validar `tools/run_whisper_npu_transcribe.py` com audio real assim que o decoder tiver particao util
-4. so depois abrir a frente de LLM via `FastFlowLM` ou `OGA Linux` com `Phi-3.5`
+2. fechar `tools/run_oga_llm_linux.sh` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+3. subir `tools/run_qwen3_14b_hybrid.sh`
+4. abrir a frente `Qwen3` grande em GPU so depois do preflight `tools/check_qwen3_gpu_env.sh`

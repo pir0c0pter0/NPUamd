@@ -11,6 +11,10 @@ runtime/ubuntu22/pythonlibs/
 runtime/ubuntu22/models/
 
 runtime/llm_linux/run_phi35/
+runtime/llm_linux/models/
+runtime/llm_linux/run_qwen3_14b_hybrid/
+runtime/gpu_runs/
+runtime/qwen3_32b_gpu_monitor_*.csv
 
 runtime/whisper/models/
 runtime/whisper/cache/

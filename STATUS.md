@@ -16,6 +16,9 @@ Fazer a NPU AMD funcionar no Linux host atual, com foco prático em:
 - Plataforma NPU confirmada agora: `STX/KRK`
 - PCI ID da NPU: `1022:17f0`
 - Revisão observada da NPU: `rev 11`
+- GPU observada agora: `Strix Halo [Radeon 8050S/8060S]`, PCI ID `1002:1586`
+- VRAM observada pelo kernel agora: `98304M`
+- RAM visível ao lado CPU agora: `MemTotal 32470164 kB` (~`31.0 GiB`)
 
 ## O que já funciona
 
@@ -225,12 +228,14 @@ Estado observado:
 - nao existe localmente `model_benchmark`
 - o clone local de `RyzenAI-SW` contém exemplos e documentação, mas nao materializa o runtime `OGA` em Linux por si só
 - o container `vitis-ubuntu22-hub` hoje tem `onnxruntime-genai 0.9.2`, mas isso sozinho nao substitui a tree oficial `deployment/` da AMD
+- a tree local `runtime/llm_linux/run_phi35` existe, mas hoje `libonnxruntime-genai.so`, `libonnx_custom_ops.so`, `libryzen_mm.so`, `model_benchmark` e `amd_genai_prompt.txt` nela estao com `0` bytes
 
 Leitura correta:
 
 - o passo 2 ainda nao está bloqueado por hardware
 - ele está bloqueado por ausência de runtime/artefatos corretos no Linux local
 - nao se deve presumir que a presença dos exemplos Python da AMD ou da wheel genérica `onnxruntime-genai` equivale à presença do runtime Linux oficial da AMD
+- tambem nao se deve tratar a tree `runtime/llm_linux/run_phi35` atual como runtime pronto; hoje ela e apenas placeholder
 
 ### Fluxo oficial `LLM on Linux` agora está confirmado
 
@@ -265,6 +270,56 @@ Implicação:
 - o passo 2 deve continuar em Linux, como meta do hub
 - mas ele agora tem um alvo operacional concreto
 - o bloqueio deixou de ser “nao existe fluxo oficial Linux” e passou a ser “falta materializar a instalacao Linux recente e os blobs reais do modelo”
+
+### Qwen3-14B híbrido oficial AMD
+
+Tambem foi retomado o wrapper do `Qwen3-14B` no caminho hibrido oficial AMD.
+
+Estado validado agora:
+
+- o script `tools/run_oga_llm_linux.sh` tinha erros de shell e foi corrigido
+- o wrapper `tools/run_qwen3_14b_hybrid.sh` agora chega na validacao correta do ambiente
+- o modelo `runtime/llm_linux/models/Qwen3-14B-onnx-ryzenai-1.7-hybrid` esta materializado localmente
+- `bash tools/run_qwen3_14b_hybrid.sh` hoje falha cedo com a mensagem correta sobre runtime Linux incompleto
+- o host continua sem `RYZEN_AI_VENV` ou `RYZEN_AI_INSTALLATION_PATH`
+- o host continua sem `deployment/lib/libonnxruntime-genai.so`, `libonnx_custom_ops.so`, `libryzen_mm.so` e `model_benchmark` vindos de uma tree Linux oficial recente
+
+Leitura correta:
+
+- o bloqueio do `Qwen3-14B hybrid` hoje nao e bug do hub
+- o bloqueio real continua sendo a ausencia da tree Linux oficial da AMD para `OGA`
+- sem essa tree, o `model_benchmark` nem chega a subir no host Linux
+
+### Qwen3 no GPU do host
+
+Tambem foi feita uma rodada real do caminho GPU-only para `Qwen3` em container `ROCm/PyTorch`.
+
+Estado observado agora no host Linux:
+
+- o kernel expõe `/dev/kfd` e `/dev/dri/renderD128`
+- o kernel `amdgpu` confirma `98304M` de VRAM na iGPU
+- o host ainda nao tem `rocminfo`, `rocm-smi`, `hipcc` nem stack ROCm user-space em `PATH`
+- mas o container `qwen3-gpu-pytorch` com `docker.io/rocm/pytorch:latest` ja foi validado com acesso real a GPU
+- `Qwen/Qwen3-4B` roda de verdade nessa trilha GPU-only
+- no split antigo `96 GB iGPU / 32 GB CPU`, `Qwen/Qwen3-32B` morria por `OOM` global do kernel em `2026-03-26 12:56:09`
+- no split antigo `96 GB iGPU / 32 GB CPU`, `Qwen/Qwen3-14B` ficava preso em swap pesada na faixa `409/443`
+- depois do rebalanceamento da BIOS para `64 GB iGPU / 64 GB CPU`, `Qwen/Qwen3-14B` e `Qwen/Qwen3-32B` passaram a carregar e gerar de verdade na iGPU
+
+Medições úteis desta rodada:
+
+- `Qwen3-4B`: load em cerca de `2.50 s`, generation em cerca de `2.84 s`, pico de `9.38 GiB` de VRAM, `87%` de `gpu_busy_percent`, `37.02 W`
+- `Qwen3-32B` em `96/32`: pico de `62.8 GiB` de VRAM, `25.15 GiB` de RSS, `38.06 W`; morto por `OOM`
+- `Qwen3-14B` em `96/32`: pico de `29.28 GiB` de VRAM, `26.34 GiB` de RSS, `100%` de `gpu_busy_percent`, `33.02 W`; sem `OOM`, mas operacionalmente impraticavel por swap
+- `Qwen3-14B` em `64/64`: load em cerca de `12.10 s`, generation em cerca de `7.55 s`, pico de `28.96 GiB` de VRAM, `99%` de `gpu_busy_percent`, `34.09 W`
+- `Qwen3-32B` em `64/64`: load em cerca de `85.54 s`, generation em cerca de `13.12 s`, pico de `58.03 GiB` de VRAM, `98%` de `gpu_busy_percent`, `37.02 W`
+
+Leitura correta:
+
+- o hardware do GPU esta visivel no kernel
+- a trilha `Qwen3` em GPU ja esta pronta via container, mesmo sem stack ROCm no host
+- o gargalo real do `Qwen3` grande neste host nao era a VRAM da iGPU
+- o gargalo real era a RAM restante do lado CPU quando a BIOS estava em `96/32`
+- com o split atual `64/64`, `4B`, `14B` e `32B` ficam viaveis na trilha GPU-only em container
 
 ### Whisper encoder na NPU via XINT8
 
@@ -395,10 +450,10 @@ Investigação sobre OGA para LLM:
 
 Os próximos passos do hub devem ser:
 
-1. manter o pipeline hibrido atual e recuperar a fidelidade do encoder XINT8 ate `sample_hf_1.flac` transcrever corretamente
-2. fazer o decoder Whisper XINT8 sair de `CPU only` e ganhar particao real para NPU
-3. investigar FastFlowLM como caminho alternativo para LLM na NPU no Linux
-4. manter baselines reproduzíveis para nao regredir
+1. fechar `OGA Linux` primeiro com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+2. subir `Qwen3-14B-onnx-ryzenai-1.7-hybrid` pelo wrapper `tools/run_qwen3_14b_hybrid.sh`
+3. materializar a stack `ROCm/PyTorch` do host para abrir a frente de `Qwen3` grande em GPU
+4. manter `ResNet18 XINT8` e `Whisper encoder XINT8` como baselines que nao podem regredir
 
 ## Diretórios importantes
 
