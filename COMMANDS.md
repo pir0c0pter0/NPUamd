@@ -262,6 +262,149 @@ Leitura correta:
 - isso nao invalida o offload real desta trilha
 - a fonte de verdade aqui é `vitisai_ep_report.json`, nao apenas a linha de placement do ORT
 
+## Prova real de offload com Whisper encoder XINT8
+
+Runner reproduzível atual:
+
+```bash
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_encoder_xint8_probe.sh
+```
+
+O que ele faz:
+
+- reutiliza o mesmo caminho `Quark XINT8 + vaip_config_npu_2_3.json` que funcionou para `ResNet18`
+- compila o probe nativo se necessario
+- executa o encoder `tiny_en_encoder_xint8.onnx` no host Linux
+- gera cache e relatorio do EP em `runtime/whisper/cache/tiny_en_encoder_xint8`
+
+Resultado esperado atual:
+
+- `runtime/whisper/cache/tiny_en_encoder_xint8/whisper_tiny_en_encoder_xint8/vitisai_ep_report.json` mostra `CPU 122` e `NPU 416`
+- o mesmo relatorio marca `Actually running on NPU` com contagem `21`
+
+Inspeção rápida do relatório:
+
+```bash
+python3 - <<'PY'
+import json
+path = "/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/cache/tiny_en_encoder_xint8/whisper_tiny_en_encoder_xint8/vitisai_ep_report.json"
+with open(path) as f:
+    data = json.load(f)
+print(data["deviceStat"])
+print(data["subgraphStat"])
+PY
+```
+
+## Estado atual do Whisper decoder XINT8
+
+Runner reproduzível atual:
+
+```bash
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_decoder_xint8_probe.sh
+```
+
+O que ele faz:
+
+- carrega `tiny_en_decoder_xint8.onnx`
+- roda o decoder com `2` inputs (`x` e `xa`) via `onnxruntime`
+- gera cache e relatorio do EP em `runtime/whisper/cache/xint8_decoder`
+
+Resultado esperado atual:
+
+- a sessao sobe e a inferencia termina com sucesso
+- `runtime/whisper/cache/xint8_decoder/whisper_dec_xint8/vitisai_ep_report.json` mostra `CPU 934`
+- o relatorio nao traz `subgraphStat`
+
+Leitura correta:
+
+- o decoder quantizado ja esta operacional no host
+- isso ainda nao prova offload real para NPU
+- o gap imediato do hub e fazer esse relatorio sair de `CPU only`
+
+Inspeção rápida do relatório:
+
+```bash
+python3 - <<'PY'
+import json
+path = "/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/cache/xint8_decoder/whisper_dec_xint8/vitisai_ep_report.json"
+with open(path) as f:
+    data = json.load(f)
+print(data["deviceStat"])
+print(data.get("subgraphStat"))
+PY
+```
+
+## Pipeline de transcrição Whisper
+
+Runner validado atual do hub:
+
+```bash
+bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_full_hybrid.sh \
+  --audio /var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/sample_hf_1.flac
+```
+
+Leitura correta:
+
+- o wrapper sobe o container `vitis-ubuntu22-hub`
+- ele compila `tools/whisper_encode_dump.c`
+- ele roda o encoder XINT8 na NPU e o decoder FP32 em CPU
+- hoje o resultado validado para `sample_hf_1.flac` ainda e parcial: `"I'm"`
+- isso prova a trilha ponta a ponta com audio real, mas ainda nao prova transcricao correta
+
+Detalhe importante do prompt:
+
+- para `openai/whisper-tiny.en`, o prefixo correto desta trilha e `tokenizer.prefix_tokens`
+- na pratica, isso significa `[50257, 50362]`
+- o prompt longo `[50257, 50258, 50358, 50362]` fazia o caminho quantizado colapsar em `EOT` imediato
+
+## Scaffold antigo no host
+
+Runner antigo do hub:
+
+```bash
+python3 /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_npu_transcribe.py --test --device npu -v
+```
+
+Para usar um `.wav` real:
+
+```bash
+python3 /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_npu_transcribe.py --audio /caminho/para/audio.wav --device npu -v
+```
+
+Leitura correta:
+
+- o script ja costura preprocessamento, encoder e decoder
+- ele agora usa o mesmo prefixo compacto do modelo `.en`
+- hoje ele continua sendo scaffold util, nao a trilha validada de ponta a ponta
+- hoje ele ainda nao vale como prova final de NPU para Whisper completo, porque o decoder continua em CPU
+
+## Requantização atual do Whisper encoder
+
+Runner reproduzível atual dentro do container:
+
+```bash
+podman exec vitis-ubuntu22-hub bash -lc '
+python3 /work/hub/tools/quantize_whisper_encoder_xint8.py \
+  --samples 32 \
+  --audio /work/hub/runtime/whisper/whisper_hello.wav \
+  --audio /work/hub/runtime/whisper/sample_hf_1.flac \
+  --output /tmp/tiny_en_encoder_xint8_calib.onnx
+'
+```
+
+Para copiar o modelo de volta ao hub:
+
+```bash
+podman cp vitis-ubuntu22-hub:/tmp/tiny_en_encoder_xint8_calib.onnx \
+  /var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_encoder_xint8.onnx
+```
+
+Leitura correta:
+
+- a quantizacao atual do encoder nao usa mais ruído aleatório como calibração
+- ela usa `WhisperFeatureExtractor` em audio real do hub
+- isso melhorou o pipeline hibrido de `EOT` imediato para uma saida parcial nao vazia
+
 ## Comparação útil: QDQ puro do ORT vs Quark XINT8
 
 Para reproduzir o caso que ainda falha:
@@ -447,6 +590,7 @@ Leitura correta:
 
 Ao retomar depois de limpar a conversa, seguir esta ordem:
 
-1. usar `tools/run_vitisai_partition_probe_native.sh` e trocar o CNN sintético por um modelo real validado pela stack AMD
-2. materializar o runtime `OGA` Linux com binários reais antes de insistir em `Phi-3.5`
-3. só depois subir para `Qwen` AMD no runtime `OGA/NPU`
+1. manter `tools/run_resnet18_xint8_quark_probe.sh` e `tools/run_whisper_encoder_xint8_probe.sh` como baselines que nao podem regredir
+2. usar `tools/run_whisper_decoder_xint8_probe.sh` para tirar o decoder Whisper de `CPU only`
+3. validar `tools/run_whisper_npu_transcribe.py` com audio real assim que o decoder tiver particao util
+4. so depois abrir a frente de LLM via `FastFlowLM` ou `OGA Linux` com `Phi-3.5`

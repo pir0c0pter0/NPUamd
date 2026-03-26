@@ -4,8 +4,8 @@
 
 Seguir esta ordem, sem desviar para CPU genérico:
 
-1. quantizar e testar o decoder Whisper (`tiny_en_decoder.onnx`) com XINT8 via Quark, usando o mesmo caminho DPU/DD que provou offload no encoder
-2. montar pipeline completo de transcrição Whisper (encoder + decoder + tokenizer + áudio real)
+1. manter o pipeline híbrido atual e recuperar a fidelidade do encoder `tiny_en_encoder_xint8.onnx` até transcrever `sample_hf_1.flac` corretamente
+2. fazer o decoder Whisper `tiny_en_decoder_xint8.onnx` sair de `CPU only` e ganhar partição real no caminho DPU/DD
 3. investigar FastFlowLM como caminho alternativo para LLM na NPU no Linux
 4. manter baselines reproduzíveis para nao regredir (ResNet18 XINT8 + Whisper encoder XINT8)
 
@@ -24,19 +24,35 @@ Seguir esta ordem, sem desviar para CPU genérico:
 
 ## Passo 2 — Whisper completo na NPU (em progresso)
 
+Estado atual:
+
+- `tiny_en_decoder.onnx` ja foi baixado para `runtime/whisper/models`
+- `tiny_en_decoder_xint8.onnx` ja foi gerado via `Quark XINT8`
+- o decoder ja sobe e infere no host Linux via `tools/run_whisper_decoder_xint8_probe.sh`
+- o relatorio atual do EP mostra `CPU 934` e nao gera `subgraphStat`
+- `tools/run_whisper_full_hybrid.sh` ja valida audio real ponta a ponta com encoder na NPU + decoder FP32 em CPU
+- o prefixo correto de `whisper-tiny.en` nesta trilha e `tokenizer.prefix_tokens`, isto e `[50257, 50362]`
+- o melhor resultado atual no `sample_hf_1.flac` e `"I'm"`, melhor que `EOT` imediato mas ainda abaixo de transcricao util
+- a fidelidade do encoder `XINT8` virou o principal gap do caminho hibrido
+- `tools/run_whisper_npu_transcribe.py` segue existindo como scaffold no host
+
 Objetivo:
 
-- quantizar e provar decoder Whisper com XINT8 na NPU
-- montar pipeline completo: encoder + decoder + tokenizer + áudio real → transcrição
+- estabilizar a transcricao real no caminho hibrido atual
+- provar particao real do decoder Whisper XINT8 na NPU
+- depois unificar tudo em um pipeline completo: encoder + decoder + tokenizer + áudio real -> transcrição
 
 Desafio técnico:
 
-- o decoder tem 2 inputs (`input_ids` + `encoder_hidden_states`), o probe C atual só suporta 1
-- precisa de probe Python ou extensão do probe C
+- o bloqueio principal do decoder ja nao e mais suporte basico a `2` inputs
+- o problema do decoder continua sendo particao: ele segue inteiro em CPU mesmo apos `Quark XINT8`
+- o problema do pipeline hibrido agora e fidelidade do encoder `XINT8`, nao mais prompt ou `EOT` imediato
 - a quantização XINT8 do decoder deve preservar a autogressão
+- a quantização XINT8 do encoder precisa preservar a semântica da fala, nao apenas o offload
 
 Critério de sucesso:
 
+- `sample_hf_1.flac` ou outro `.wav` real transcrevendo corretamente no caminho hibrido com encoder na NPU
 - decoder com operadores na NPU (mesmo que parcial)
 - transcrição real de `.wav` usando NPU para encoder e decoder
 
@@ -153,6 +169,10 @@ Provas fortes já obtidas:
 - `resnet18_xint8_quark.onnx` inferindo com `NPU 164 / CPU 2` (CNN)
 - `tiny_en_encoder_xint8.onnx` inferindo com `NPU 416 / CPU 122` (transformer)
 - ambos marcam `Actually running on NPU`
+
+Estado intermediario importante:
+
+- `tiny_en_decoder_xint8.onnx` ja infere no host, mas ainda fica em `CPU 934` e sem `subgraphStat`
 
 Próximas provas fortes a buscar:
 

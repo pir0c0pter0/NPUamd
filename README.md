@@ -20,9 +20,12 @@ Hoje a resposta e:
 
 - sim, a NPU existe e o kernel a reconhece
 - sim, a stack `VitisAIExecutionProvider` sobe no Linux host e em `Ubuntu 22.04`
-- sim, ja existe prova forte de offload real para a NPU no host Linux
-- nao, `Whisper` e `LLM` ainda nao estao fechados com prova final de NPU neste host
-- o proximo alvo correto e `OGA Linux` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+- sim, ja existe prova forte e reproduzivel de offload real para a NPU no host Linux com `ResNet18 XINT8`
+- sim, ja existe prova forte e reproduzivel de offload de transformer para a NPU com `Whisper tiny.en encoder XINT8`
+- nao, `Whisper` ainda nao esta fechado de ponta a ponta na NPU: o decoder XINT8 ja sobe, mas continua inteiro em CPU
+- sim, ja existe pipeline hibrido ponta a ponta com audio real usando encoder na NPU e decoder FP32 em CPU; hoje o melhor resultado validado ainda e parcial (`"I'm"` no `sample_hf_1.flac`)
+- nao, `LLM` ainda nao esta fechado com prova final de NPU neste host
+- o proximo trabalho imediato e recuperar a fidelidade do encoder XINT8 no pipeline hibrido; depois disso, voltar ao decoder/transcricao completa na NPU e retomar `OGA Linux` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
 
 ## O que ja foi provado
 
@@ -70,11 +73,35 @@ Nuance importante:
 - o log do ORT ainda pode dizer algo ambiguo sobre placement em CPU
 - a fonte de verdade aqui e o relatorio do EP, nao uma linha isolada do log
 
-### 4. O que ainda nao vale como prova
+### 4. Primeira prova real de offload de transformer
+
+O segundo caso que realmente fez offload foi:
+
+- `runtime/whisper/models/tiny_en_encoder_xint8.onnx`
+
+Trilha usada:
+
+- download do encoder `amd/whisper-tiny-en-onnx-npu`
+- quantizacao com `amd-quark==0.10`
+- execucao via `VitisAIExecutionProvider` com `vaip_config_npu_2_3.json`
+
+Prova forte:
+
+- `runtime/whisper/cache/tiny_en_encoder_xint8/whisper_tiny_en_encoder_xint8/vitisai_ep_report.json` mostra `CPU 122` e `NPU 416`
+- o mesmo relatorio marca `Actually running on NPU 21`
+
+Leitura correta:
+
+- o primeiro transformer com offload real neste host ja existe
+- o caminho que funciona nesta tree Linux e `Quark XINT8 + DPU/DD`
+- o caminho VAIML/BF16 continua bloqueado pela ausencia de `libvaip-pass_vaiml_partition.so`
+
+### 5. O que ainda nao vale como prova
 
 Ainda nao vale como prova de NPU:
 
 - baseline de `Qwen` em `transformers.js` no host, porque hoje ele roda em CPU
+- `tiny_en_decoder_xint8.onnx`, porque hoje o relatorio ainda mostra `CPU 934` e nao gera `subgraphStat`
 - CNN sintetico pequeno com `2 Conv`, porque continua inteiro em CPU
 - `xrt-smi` atual, porque ainda retorna `0 devices found`
 - checkpoint pequeno `.pt` do exemplo AMD, porque hoje ele e so ponteiro `git-lfs`
@@ -99,6 +126,10 @@ No host atual ainda faltam:
 - `model_benchmark`
 - blobs reais `git-lfs` do modelo `Phi-3.5`
 
+Alternativa em observacao:
+
+- `FastFlowLM` como runtime NPU-first no Linux, caso `OGA` continue bloqueado por binarios proprietarios ausentes
+
 ## Estrutura deste repositorio
 
 Arquivos principais:
@@ -114,6 +145,12 @@ Scripts principais:
 - `tools/run_vitisai_probe_native.sh`
 - `tools/run_vitisai_partition_probe_native.sh`
 - `tools/run_resnet18_xint8_quark_probe.sh`
+- `tools/run_whisper_encoder_xint8_probe.sh`
+- `tools/run_whisper_decoder_xint8_probe.sh`
+- `tools/run_whisper_full_hybrid.sh`
+- `tools/run_whisper_hybrid_transcribe.py`
+- `tools/run_whisper_npu_transcribe.py`
+- `tools/whisper_encode_dump.c`
 - `tools/run_oga_llm_linux.sh`
 - `tools/patch_oga_linux_model.py`
 
@@ -122,8 +159,9 @@ Scripts principais:
 Se eu precisasse retomar do zero com o menor risco tecnico, eu faria nesta ordem:
 
 1. manter `resnet18_xint8_quark.onnx` como baseline reproduzivel do primeiro offload real
-2. fechar `OGA` em Linux usando primeiro `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
-3. so depois subir para `Qwen` da colecao AMD `OGA/NPU`
+2. manter `tiny_en_encoder_xint8.onnx` como baseline reproduzivel do primeiro transformer na NPU
+3. manter `tools/run_whisper_full_hybrid.sh` como trilha funcional atual e recuperar a fidelidade do encoder XINT8
+4. so depois retomar `OGA` em Linux usando primeiro `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
 
 ## Repositorios AMD usados
 
@@ -175,6 +213,50 @@ Para o baseline de offload real:
 bash tools/run_resnet18_xint8_quark_probe.sh
 ```
 
+Para o baseline de transformer na NPU:
+
+```bash
+bash tools/run_whisper_encoder_xint8_probe.sh
+```
+
+Para ver o estado atual do decoder Whisper:
+
+```bash
+bash tools/run_whisper_decoder_xint8_probe.sh
+```
+
+Leitura correta desse ultimo comando:
+
+- hoje ele sobe e infere o decoder XINT8 no host
+- hoje o relatorio ainda sai `CPU 934`
+- isso ainda nao prova offload do decoder
+
+Para exercitar o pipeline completo de transcricao:
+
+```bash
+bash tools/run_whisper_full_hybrid.sh --audio /var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/sample_hf_1.flac
+```
+
+Leitura correta desse comando:
+
+- ele ja costura preprocessamento, encoder e decoder em audio real
+- o encoder continua saindo com `NPU 416 / CPU 122`
+- o prompt correto para `whisper-tiny.en` nesta trilha e o prefixo compacto `[50257, 50362]`
+- hoje ele valida o caminho hibrido `encoder na NPU + decoder FP32 em CPU`
+- hoje o melhor resultado validado no `sample_hf_1.flac` ainda e parcial (`"I'm"`), entao isso ainda nao vale como prova final de Whisper completo
+
+Para a trilha antiga em Python no host:
+
+```bash
+python3 tools/run_whisper_npu_transcribe.py --test --device npu -v
+```
+
+Leitura correta desse ultimo comando:
+
+- ele segue existindo como scaffold de alto nivel
+- ele agora usa o mesmo prefixo compacto do modelo `.en`
+- a trilha validada de ponta a ponta hoje continua sendo o wrapper em container
+
 Para o probe nativo do provider AMD:
 
 ```bash
@@ -195,4 +277,4 @@ Leitura correta desse ultimo comando:
 
 ## Estado atual em uma linha
 
-O primeiro offload real para a NPU AMD no Linux host ja foi provado; agora o trabalho serio e fechar `OGA Linux` com `Phi-3.5` usando a trilha oficial da AMD, em vez de perder tempo com caminhos genericos que so mostram CPU.
+O host Linux ja provou offload real para CNN e transformer na NPU AMD; o pipeline Whisper hibrido agora executa audio real fim a fim com encoder na NPU, mas o gap imediato virou recuperar a fidelidade do encoder XINT8 e depois tirar o decoder de `CPU only`, antes de voltar para `OGA Linux` com `Phi-3.5` ou um runtime alternativo realmente NPU-first.

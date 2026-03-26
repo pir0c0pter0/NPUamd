@@ -33,11 +33,7 @@ SAMPLE_RATE = 16000
 MAX_DECODE_LEN = 448
 
 # Whisper special tokens (for tiny.en)
-SOT_TOKEN = 50257  # <|startoftranscript|>
 EOT_TOKEN = 50256  # <|endoftext|>
-TRANSCRIBE_TOKEN = 50358  # <|transcribe|>
-NOTIMESTAMPS_TOKEN = 50362  # <|notimestamps|>
-EN_TOKEN = 50258   # <|en|>
 
 
 def get_provider_options(device):
@@ -184,7 +180,15 @@ def run_transcription(audio, encoder_session, decoder_session, verbose=False):
         print(f"  Encode:     {t_encode:.3f}s")
 
     # Decode (greedy)
-    tokens = [SOT_TOKEN, EN_TOKEN, TRANSCRIBE_TOKEN, NOTIMESTAMPS_TOKEN]
+    tokenizer = None
+    prompt_len = 2
+    try:
+        from transformers import WhisperTokenizer
+        tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-tiny.en")
+        tokens = [int(token_id) for token_id in tokenizer.prefix_tokens]
+        prompt_len = len(tokens)
+    except ImportError:
+        tokens = [50257, 50362]
     t0 = time.perf_counter()
     t_first_token = None
 
@@ -208,7 +212,7 @@ def run_transcription(audio, encoder_session, decoder_session, verbose=False):
         tokens.append(next_token)
 
     t_decode = time.perf_counter() - t0
-    n_generated = len(tokens) - 4  # subtract prompt tokens
+    n_generated = len(tokens) - prompt_len
 
     if verbose:
         print(f"  Decode:     {t_decode:.3f}s ({n_generated} tokens)")
@@ -247,7 +251,13 @@ def main():
         if os.path.isdir(lib_dir):
             os.environ["LD_LIBRARY_PATH"] = lib_dir + ":" + os.environ.get("LD_LIBRARY_PATH", "")
 
-    import onnxruntime as ort
+    try:
+        import onnxruntime as ort
+    except ModuleNotFoundError:
+        print("[ERROR] Python binding for onnxruntime is not available on this host.")
+        print("[ERROR] The current host Python is not the validated path for the AMD Linux stack.")
+        print("[ERROR] Use the native C probes for NPU validation first; this script remains a higher-level scaffold.")
+        sys.exit(2)
     print(f"ONNX Runtime: {ort.__version__}")
     print(f"Available EPs: {ort.get_available_providers()}")
 

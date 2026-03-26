@@ -12,7 +12,7 @@ Fazer a NPU AMD funcionar no Linux host atual, com foco prático em:
 - Usuário: `mariostjr`
 - Sistema: Bazzite/Fedora imutável
 - Modelo de gestão: `rpm-ostree`
-- Data deste registro: `2026-03-24`
+- Data deste registro: `2026-03-26`
 - Plataforma NPU confirmada agora: `STX/KRK`
 - PCI ID da NPU: `1022:17f0`
 - Revisão observada da NPU: `rev 11`
@@ -275,6 +275,7 @@ Estado validado agora:
 - foi baixado o modelo `amd/whisper-tiny-en-onnx-npu` do HuggingFace
 - o encoder é FP32 com shapes estáticos `[1, 80, 3000]` → `[1, 1500, 384]`, 135 nós, opset 20
 - o encoder foi quantizado com `Quark XINT8` no container `vitis-ubuntu22-hub`
+- a quantização atual do encoder deixou de usar ruído gaussiano aleatório e passou a usar calibração speech-like via `WhisperFeatureExtractor` sobre audio real do hub
 - o modelo XINT8 resultante tem 7.9 MB (de 32 MB original)
 - o probe nativo no host rodou com sucesso usando o config `vaip_config_npu_2_3.json` (DPU/DD)
 - o relatório do EP mostra `NPU 416 / CPU 122`
@@ -294,6 +295,55 @@ Descobertas importantes desta rodada:
 - os modelos pre-built da AMD no HuggingFace (`amd/whisper-*-onnx-npu`) sao FP32 e esperam o caminho VAIML; sem esse plugin, nao vao para NPU
 - a estratégia correta nesta tree é quantizar primeiro com Quark XINT8 e usar o config DPU/DD
 
+### Whisper decoder XINT8 no host Linux
+
+Tambem foi exercitado o decoder do Whisper no mesmo host Linux.
+
+Estado validado agora:
+
+- o arquivo `runtime/whisper/models/tiny_en_decoder.onnx` foi materializado com 117 MB
+- o decoder foi quantizado com `Quark XINT8` para `runtime/whisper/models/tiny_en_decoder_xint8.onnx`
+- o modelo XINT8 resultante tem 48 MB
+- foi criado `tools/run_whisper_decoder_xint8_probe.sh` para rodar o decoder com `2` inputs (`x` e `xa`)
+- foi criado `tools/probe_whisper_decoder.c` para ter um caminho C nativo dedicado a decoder multi-input
+- o probe nativo do decoder sobe a sessao, roda inferencia e gera cache no host Linux
+- `runtime/whisper/cache/xint8_decoder/whisper_dec_xint8/vitisai_ep_report.json` mostra `CPU 934`
+- esse relatorio nao gera `subgraphStat`, entao hoje nao existe prova de particao real para NPU no decoder
+- foi criado `tools/run_whisper_npu_transcribe.py` para costurar preprocessamento, encoder e decoder em uma trilha unica
+- configs-alvo extras para transformer/DD foram testados em `runtime/whisper/configs`, mas nenhum fez o decoder sair de `CPU only`
+- nesta tree Linux faltam componentes usados por essas variantes, como `libvaip-pass_level1_dd.so` e o pass `fuse_dynamic_dispatch_pss_pst`
+- o submodelo extraido `tiny_en_decoder_body_xint8.onnx` tambem foi testado e continua inteiro em CPU (`CPU 921`)
+
+Leitura correta desta rodada:
+
+- a quantizacao do decoder ja foi feita
+- o suporte basico a `2` inputs ja deixou de ser o bloqueio principal
+- o bloqueio agora e fazer o decoder sair de `CPU only`
+- sem isso, ainda nao existe prova final de Whisper completo na NPU
+
+### Whisper híbrido ponta a ponta com áudio real
+
+Tambem foi fechada nesta retomada uma trilha hibrida de transcricao real.
+
+Estado validado agora:
+
+- foi criado `tools/whisper_encode_dump.c` para rodar o encoder XINT8 pela C API nativa e despejar o tensor `[1, 1500, 384]`
+- foi criado `tools/run_whisper_hybrid_transcribe.py` para usar encoder na NPU e decoder FP32 em CPU dentro do container
+- foi criado `tools/run_whisper_full_hybrid.sh` como wrapper reproduzivel no host
+- o prefixo correto para `openai/whisper-tiny.en` nesta trilha deixou de ser o prompt longo `[50257, 50258, 50358, 50362]` e passou a ser `tokenizer.prefix_tokens`, isto e `[50257, 50362]`
+- com o prompt antigo, o decoder colapsava em `EOT` imediato; com o prefixo compacto, a trilha inteira passou a gerar texto
+- o encoder continua provando `NPU 416 / CPU 122` no mesmo runner hibrido
+- o melhor resultado validado hoje para `runtime/whisper/sample_hf_1.flac` e `"I'm"`
+- o mesmo encoder XINT8 gera a mesma saida parcial em CPU, entao o gap atual deixou de ser o runtime da NPU e passou a ser a fidelidade do encoder quantizado
+- uma segunda calibracao mais ampla com `6` arquivos de fala foi testada e descartada porque regrediu o resultado para `"I"`
+
+Leitura correta desta rodada:
+
+- a trilha ponta a ponta com audio real deixou de ser hipotese e virou fato reproduzivel
+- o bloqueio principal do Whisper completo deixou de ser `EOT` imediato por prompt errado
+- o bloqueio atual do pipeline hibrido e precisao do encoder `XINT8`
+- o bloqueio atual do pipeline `Whisper completo na NPU` continua sendo duplo: precisao do encoder `XINT8` e decoder ainda `CPU only`
+
 Investigação sobre OGA para LLM:
 
 - AMD nao tem instalador Linux oficial para Ryzen AI Software (apenas Windows MSI)
@@ -311,8 +361,10 @@ Investigação sobre OGA para LLM:
 - já existe prova de sessão e inferência mínima em container `Ubuntu 22.04`
 - já existe prova forte e reproduzível de offload real para NPU no host Linux com CNN (ResNet18)
 - já existe prova forte e reproduzível de offload de transformer para NPU no host Linux (Whisper encoder)
+- ja existe decoder Whisper XINT8 quantizado e inferindo no host Linux, mas ainda inteiro em CPU
+- ja existe um pipeline hibrido de transcricao Whisper com audio real, encoder na NPU e decoder em CPU, mas o melhor resultado atual ainda e parcial (`"I'm"`)
 - já existe prova de LLM pequena rodando nativamente no host Linux, mas em CPU
-- ainda nao existe benchmark válido de Whisper completo (encoder + decoder + transcrição real)
+- ainda nao existe benchmark válido de Whisper completo com transcricao correta
 - ainda nao existe prova final de LLM usando NPU
 - o hardware local foi confirmado como `STX/KRK`, nao `PHX/HPT`
 - o primeiro caminho validado de offload real para CNN é `resnet18_xint8_quark.onnx`
@@ -324,8 +376,8 @@ Investigação sobre OGA para LLM:
 
 Os próximos passos do hub devem ser:
 
-1. quantizar e testar o decoder Whisper com XINT8 para completar a prova de transcrição real na NPU
-2. montar pipeline completo de transcrição Whisper (encoder + decoder + tokenizer + áudio)
+1. manter o pipeline hibrido atual e recuperar a fidelidade do encoder XINT8 ate `sample_hf_1.flac` transcrever corretamente
+2. fazer o decoder Whisper XINT8 sair de `CPU only` e ganhar particao real para NPU
 3. investigar FastFlowLM como caminho alternativo para LLM na NPU no Linux
 4. manter baselines reproduzíveis para nao regredir
 
@@ -337,6 +389,7 @@ Os próximos passos do hub devem ser:
 - `/var/home/mariostjr/LIRA`
 - `/var/home/mariostjr/ryzen-ai-venv`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/ubuntu22`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/llm_linux`
 
 ## Artefatos novos do hub
@@ -360,7 +413,22 @@ Os próximos passos do hub devem ser:
 - `/var/home/mariostjr/Documents/hubs/NPUamd/tools/quantize_whisper_encoder_xint8.py`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_encoder_probe.sh`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_encoder_xint8_probe.sh`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/quantize_whisper_decoder_xint8.py`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/probe_whisper_decoder.c`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_decoder_xint8_probe.sh`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/extract_whisper_decoder_body.py`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/make_vaip_target_config.py`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/whisper_encode_dump.c`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_hybrid_transcribe.py`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_full_hybrid.sh`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/tools/run_whisper_npu_transcribe.py`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_encoder.onnx`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_encoder_xint8.onnx`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_decoder.onnx`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_decoder_xint8.onnx`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/models/tiny_en_decoder_body_xint8.onnx`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/cache/tiny_en_encoder_xint8/whisper_tiny_en_encoder_xint8/vitisai_ep_report.json`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/cache/xint8_decoder/whisper_dec_xint8/vitisai_ep_report.json`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/sample_hf_1.flac`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/whisper_hello.wav`
+- `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/calib`

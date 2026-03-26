@@ -56,11 +56,11 @@
    ],
    "input": [
     "x",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "x_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@60 [x_QuantizeLinear_Output:(ty=2,shape=[1,80,3000])] QuantizeLinear [x:(ty=1,shape=[1,80,3000]),add_5_scale:(ty=1,shape=[]),x_zero_point:(ty=2,shape=[])]",
+   "comment": "@60 [x_QuantizeLinear_Output:(ty=2,shape=[1,80,3000])] QuantizeLinear [x:(ty=1,shape=[1,80,3000]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),x_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -69,11 +69,11 @@
    ],
    "input": [
     "x_QuantizeLinear_Output",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "x_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@61 [x_DequantizeLinear_Output:(ty=1,shape=[1,80,3000])] DequantizeLinear [x_QuantizeLinear_Output:(ty=2,shape=[1,80,3000]),add_5_scale:(ty=1,shape=[]),x_zero_point:(ty=2,shape=[])]",
+   "comment": "@61 [x_DequantizeLinear_Output:(ty=1,shape=[1,80,3000])] DequantizeLinear [x_QuantizeLinear_Output:(ty=2,shape=[1,80,3000]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),x_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -121,11 +121,11 @@
    ],
    "input": [
     "conv1d",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "conv1d_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@63 [conv1d_QuantizeLinear_Output:(ty=2,shape=[1,384,3000])] QuantizeLinear [conv1d:(ty=1,shape=[1,384,3000]),ln_post.bias_scale:(ty=1,shape=[]),conv1d_zero_point:(ty=2,shape=[])]",
+   "comment": "@63 [conv1d_QuantizeLinear_Output:(ty=2,shape=[1,384,3000])] QuantizeLinear [conv1d:(ty=1,shape=[1,384,3000]),layer_norm_8_scale:(ty=1,shape=[]),conv1d_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -134,11 +134,11 @@
    ],
    "input": [
     "conv1d_QuantizeLinear_Output",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "conv1d_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@64 [conv1d_DequantizeLinear_Output:(ty=1,shape=[1,384,3000])] DequantizeLinear [conv1d_QuantizeLinear_Output:(ty=2,shape=[1,384,3000]),ln_post.bias_scale:(ty=1,shape=[]),conv1d_zero_point:(ty=2,shape=[])]",
+   "comment": "@64 [conv1d_DequantizeLinear_Output:(ty=1,shape=[1,384,3000])] DequantizeLinear [conv1d_QuantizeLinear_Output:(ty=2,shape=[1,384,3000]),layer_norm_8_scale:(ty=1,shape=[]),conv1d_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -158,11 +158,11 @@
    ],
    "input": [
     "gelu",
-    "add_5_scale",
+    "val_247_scale",
     "gelu_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@66 [gelu_QuantizeLinear_Output:(ty=2,shape=[1,384,3000])] QuantizeLinear [gelu:(ty=1,shape=[1,384,3000]),add_5_scale:(ty=1,shape=[]),gelu_zero_point:(ty=2,shape=[])]",
+   "comment": "@66 [gelu_QuantizeLinear_Output:(ty=2,shape=[1,384,3000])] QuantizeLinear [gelu:(ty=1,shape=[1,384,3000]),val_247_scale:(ty=1,shape=[]),gelu_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -171,11 +171,11 @@
    ],
    "input": [
     "gelu_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "gelu_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@67 [gelu_DequantizeLinear_Output:(ty=1,shape=[1,384,3000])] DequantizeLinear [gelu_QuantizeLinear_Output:(ty=2,shape=[1,384,3000]),add_5_scale:(ty=1,shape=[]),gelu_zero_point:(ty=2,shape=[])]",
+   "comment": "@67 [gelu_DequantizeLinear_Output:(ty=1,shape=[1,384,3000])] DequantizeLinear [gelu_QuantizeLinear_Output:(ty=2,shape=[1,384,3000]),val_247_scale:(ty=1,shape=[]),gelu_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -862,11 +862,11 @@
    ],
    "input": [
     "linear",
-    "layer_norm_8_scale",
+    "ln_post.bias_scale",
     "linear_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@98 [linear_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear:(ty=1,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
+   "comment": "@98 [linear_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -875,11 +875,11 @@
    ],
    "input": [
     "linear_QuantizeLinear_Output",
-    "layer_norm_8_scale",
+    "ln_post.bias_scale",
     "linear_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@101 [linear_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
+   "comment": "@101 [linear_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -900,11 +900,11 @@
    ],
    "input": [
     "view",
-    "layer_norm_8_scale",
+    "ln_post.bias_scale",
     "linear_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@107 [view_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64])] QuantizeLinear [view:(ty=1,shape=[1,1500,6,64]),layer_norm_8_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
+   "comment": "@107 [view_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64])] QuantizeLinear [view:(ty=1,shape=[1,1500,6,64]),ln_post.bias_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -913,11 +913,11 @@
    ],
    "input": [
     "view_QuantizeLinear_Output",
-    "layer_norm_8_scale",
+    "ln_post.bias_scale",
     "linear_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@110 [view_DequantizeLinear_Output:(ty=1,shape=[1,1500,6,64])] DequantizeLinear [view_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64]),layer_norm_8_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
+   "comment": "@110 [view_DequantizeLinear_Output:(ty=1,shape=[1,1500,6,64])] DequantizeLinear [view_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64]),ln_post.bias_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -937,11 +937,11 @@
    ],
    "input": [
     "permute_1",
-    "layer_norm_8_scale",
+    "ln_post.bias_scale",
     "linear_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@116 [permute_1_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64])] QuantizeLinear [permute_1:(ty=1,shape=[1,6,1500,64]),layer_norm_8_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
+   "comment": "@116 [permute_1_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64])] QuantizeLinear [permute_1:(ty=1,shape=[1,6,1500,64]),ln_post.bias_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -950,11 +950,11 @@
    ],
    "input": [
     "permute_1_QuantizeLinear_Output",
-    "layer_norm_8_scale",
+    "ln_post.bias_scale",
     "linear_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@119 [permute_1_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,64])] DequantizeLinear [permute_1_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64]),layer_norm_8_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
+   "comment": "@119 [permute_1_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,64])] DequantizeLinear [permute_1_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64]),ln_post.bias_scale:(ty=1,shape=[]),linear_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1026,11 +1026,11 @@
    ],
    "input": [
     "val_53",
-    "val_251_scale",
+    "val_53_scale",
     "val_53_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@135 [val_53_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500])] QuantizeLinear [val_53:(ty=1,shape=[1,6,1500,1500]),val_251_scale:(ty=1,shape=[]),val_53_zero_point:(ty=2,shape=[])]",
+   "comment": "@135 [val_53_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500])] QuantizeLinear [val_53:(ty=1,shape=[1,6,1500,1500]),val_53_scale:(ty=1,shape=[]),val_53_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -1039,11 +1039,11 @@
    ],
    "input": [
     "val_53_QuantizeLinear_Output",
-    "val_251_scale",
+    "val_53_scale",
     "val_53_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@136 [val_53_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,1500])] DequantizeLinear [val_53_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500]),val_251_scale:(ty=1,shape=[]),val_53_zero_point:(ty=2,shape=[])]",
+   "comment": "@136 [val_53_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,1500])] DequantizeLinear [val_53_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500]),val_53_scale:(ty=1,shape=[]),val_53_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1791,11 +1791,11 @@
    ],
    "input": [
     "gelu_2",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_2_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@174 [gelu_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_2:(ty=1,shape=[1,1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@174 [gelu_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_2:(ty=1,shape=[1,1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -1804,11 +1804,11 @@
    ],
    "input": [
     "gelu_2_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@175 [gelu_2_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@175 [gelu_2_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1829,11 +1829,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_7",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_2_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@177 [gemm_input_reshape_arg_token_7_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_7:(ty=1,shape=[1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@177 [gemm_input_reshape_arg_token_7_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_7:(ty=1,shape=[1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1842,11 +1842,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_7_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@178 [gemm_input_reshape_arg_token_7_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_7_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@178 [gemm_input_reshape_arg_token_7_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_7_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1894,11 +1894,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_10",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gemm_output_reshape_arg_token_10_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@180 [gemm_output_reshape_arg_token_10_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_10:(ty=1,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
+   "comment": "@180 [gemm_output_reshape_arg_token_10_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_10:(ty=1,shape=[1500,384]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1907,11 +1907,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_10_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gemm_output_reshape_arg_token_10_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@181 [gemm_output_reshape_arg_token_10_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_10_QuantizeLinear_Output:(ty=2,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
+   "comment": "@181 [gemm_output_reshape_arg_token_10_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_10_QuantizeLinear_Output:(ty=2,shape=[1500,384]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1932,11 +1932,11 @@
    ],
    "input": [
     "linear_5",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gemm_output_reshape_arg_token_10_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@183 [linear_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_5:(ty=1,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
+   "comment": "@183 [linear_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_5:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1945,11 +1945,11 @@
    ],
    "input": [
     "linear_5_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gemm_output_reshape_arg_token_10_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@184 [linear_5_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
+   "comment": "@184 [linear_5_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_10_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1970,11 +1970,11 @@
    ],
    "input": [
     "add_2",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "add_2_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@186 [add_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_2:(ty=1,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@186 [add_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_2:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -1983,11 +1983,11 @@
    ],
    "input": [
     "add_2_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "add_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@526 [add_2_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@526 [add_2_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -2009,11 +2009,11 @@
    ],
    "input": [
     "add_2_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "add_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@187 [add_2_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@187 [add_2_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_2_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_2_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -2379,11 +2379,11 @@
    ],
    "input": [
     "val_118",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "val_118_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@240 [val_118_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500])] QuantizeLinear [val_118:(ty=1,shape=[1,6,64,1500]),add_5_scale:(ty=1,shape=[]),val_118_zero_point:(ty=2,shape=[])]",
+   "comment": "@240 [val_118_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500])] QuantizeLinear [val_118:(ty=1,shape=[1,6,64,1500]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),val_118_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -2392,11 +2392,11 @@
    ],
    "input": [
     "val_118_QuantizeLinear_Output",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "val_118_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@241 [val_118_DequantizeLinear_Output:(ty=1,shape=[1,6,64,1500])] DequantizeLinear [val_118_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500]),add_5_scale:(ty=1,shape=[]),val_118_zero_point:(ty=2,shape=[])]",
+   "comment": "@241 [val_118_DequantizeLinear_Output:(ty=1,shape=[1,6,64,1500])] DequantizeLinear [val_118_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),val_118_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -3081,11 +3081,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_16",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_16_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@261 [gemm_output_reshape_arg_token_16_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_16:(ty=1,shape=[1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
+   "comment": "@261 [gemm_output_reshape_arg_token_16_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_16:(ty=1,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3094,11 +3094,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_16_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_16_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@262 [gemm_output_reshape_arg_token_16_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_16_QuantizeLinear_Output:(ty=2,shape=[1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
+   "comment": "@262 [gemm_output_reshape_arg_token_16_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_16_QuantizeLinear_Output:(ty=2,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3119,11 +3119,11 @@
    ],
    "input": [
     "linear_9",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_16_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@264 [linear_9_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_9:(ty=1,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
+   "comment": "@264 [linear_9_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_9:(ty=1,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3132,11 +3132,11 @@
    ],
    "input": [
     "linear_9_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_16_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@265 [linear_9_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_9_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
+   "comment": "@265 [linear_9_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_9_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_16_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3157,11 +3157,11 @@
    ],
    "input": [
     "add_3",
-    "add_5_scale",
+    "ln_post.bias_scale",
     "add_3_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@267 [add_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_3:(ty=1,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),add_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@267 [add_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_3:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3170,11 +3170,11 @@
    ],
    "input": [
     "add_3_QuantizeLinear_Output",
-    "add_5_scale",
+    "ln_post.bias_scale",
     "add_3_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@529 [add_3_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),add_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@529 [add_3_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3183,11 +3183,11 @@
    ],
    "input": [
     "add_3_QuantizeLinear_Output",
-    "add_5_scale",
+    "ln_post.bias_scale",
     "add_3_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@268 [add_3_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),add_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@268 [add_3_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_3_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -3235,11 +3235,11 @@
    ],
    "input": [
     "layer_norm_3",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "layer_norm_3_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@270 [layer_norm_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [layer_norm_3:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@270 [layer_norm_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [layer_norm_3:(ty=1,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -3248,11 +3248,11 @@
    ],
    "input": [
     "layer_norm_3_QuantizeLinear_Output",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "layer_norm_3_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@271 [layer_norm_3_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [layer_norm_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@271 [layer_norm_3_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [layer_norm_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3273,11 +3273,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_19",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "layer_norm_3_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@273 [gemm_input_reshape_arg_token_19_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_input_reshape_arg_token_19:(ty=1,shape=[1500,384]),ln_post.bias_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@273 [gemm_input_reshape_arg_token_19_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_input_reshape_arg_token_19:(ty=1,shape=[1500,384]),layer_norm_8_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3286,11 +3286,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_19_QuantizeLinear_Output",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "layer_norm_3_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@274 [gemm_input_reshape_arg_token_19_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_input_reshape_arg_token_19_QuantizeLinear_Output:(ty=2,shape=[1500,384]),ln_post.bias_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@274 [gemm_input_reshape_arg_token_19_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_input_reshape_arg_token_19_QuantizeLinear_Output:(ty=2,shape=[1500,384]),layer_norm_8_scale:(ty=1,shape=[]),layer_norm_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3413,11 +3413,11 @@
    ],
    "input": [
     "gelu_3",
-    "add_5_scale",
+    "val_247_scale",
     "gelu_3_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@282 [gelu_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_3:(ty=1,shape=[1,1500,1536]),add_5_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@282 [gelu_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_3:(ty=1,shape=[1,1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -3426,11 +3426,11 @@
    ],
    "input": [
     "gelu_3_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "gelu_3_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@283 [gelu_3_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),add_5_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@283 [gelu_3_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_3_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3451,11 +3451,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_25",
-    "add_5_scale",
+    "val_247_scale",
     "gelu_3_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@285 [gemm_input_reshape_arg_token_25_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_25:(ty=1,shape=[1500,1536]),add_5_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@285 [gemm_input_reshape_arg_token_25_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_25:(ty=1,shape=[1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3464,11 +3464,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_25_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "gelu_3_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@286 [gemm_input_reshape_arg_token_25_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_25_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),add_5_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
+   "comment": "@286 [gemm_input_reshape_arg_token_25_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_25_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_3_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3490,11 +3490,11 @@
    ],
    "input": [
     "blocks.1.mlp.2.bias_quantized",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "blocks.1.mlp.2.bias_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@19 [blocks.1.mlp.2.bias_DequantizeLinear_Output:(ty=1,shape=[384])] DequantizeLinear [blocks.1.mlp.2.bias_quantized:(ty=3,shape=[384]),add_5_scale:(ty=1,shape=[]),blocks.1.mlp.2.bias_zero_point:(ty=3,shape=[])]",
+   "comment": "@19 [blocks.1.mlp.2.bias_DequantizeLinear_Output:(ty=1,shape=[384])] DequantizeLinear [blocks.1.mlp.2.bias_quantized:(ty=3,shape=[384]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),blocks.1.mlp.2.bias_zero_point:(ty=3,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3516,11 +3516,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_28",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_28_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@288 [gemm_output_reshape_arg_token_28_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_28:(ty=1,shape=[1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
+   "comment": "@288 [gemm_output_reshape_arg_token_28_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_28:(ty=1,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3529,11 +3529,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_28_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_28_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@289 [gemm_output_reshape_arg_token_28_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_28_QuantizeLinear_Output:(ty=2,shape=[1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
+   "comment": "@289 [gemm_output_reshape_arg_token_28_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_28_QuantizeLinear_Output:(ty=2,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3554,11 +3554,11 @@
    ],
    "input": [
     "linear_11",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_28_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@291 [linear_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_11:(ty=1,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
+   "comment": "@291 [linear_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_11:(ty=1,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3567,11 +3567,11 @@
    ],
    "input": [
     "linear_11_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "gemm_output_reshape_arg_token_28_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@292 [linear_11_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
+   "comment": "@292 [linear_11_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_28_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3592,11 +3592,11 @@
    ],
    "input": [
     "add_4",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "add_4_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@294 [add_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_4:(ty=1,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_4_zero_point:(ty=2,shape=[])]",
+   "comment": "@294 [add_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_4:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_4_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3605,11 +3605,11 @@
    ],
    "input": [
     "add_4_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "add_4_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@530 [add_4_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_4_zero_point:(ty=2,shape=[])]",
+   "comment": "@530 [add_4_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_4_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -3631,11 +3631,11 @@
    ],
    "input": [
     "add_4_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "add_4_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@295 [add_4_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_4_zero_point:(ty=2,shape=[])]",
+   "comment": "@295 [add_4_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_4_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -4001,11 +4001,11 @@
    ],
    "input": [
     "val_184",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "val_184_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@348 [val_184_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500])] QuantizeLinear [val_184:(ty=1,shape=[1,6,64,1500]),add_5_scale:(ty=1,shape=[]),val_184_zero_point:(ty=2,shape=[])]",
+   "comment": "@348 [val_184_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500])] QuantizeLinear [val_184:(ty=1,shape=[1,6,64,1500]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),val_184_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4014,11 +4014,11 @@
    ],
    "input": [
     "val_184_QuantizeLinear_Output",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "val_184_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@349 [val_184_DequantizeLinear_Output:(ty=1,shape=[1,6,64,1500])] DequantizeLinear [val_184_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500]),add_5_scale:(ty=1,shape=[]),val_184_zero_point:(ty=2,shape=[])]",
+   "comment": "@349 [val_184_DequantizeLinear_Output:(ty=1,shape=[1,6,64,1500])] DequantizeLinear [val_184_QuantizeLinear_Output:(ty=2,shape=[1,6,64,1500]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),val_184_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -4525,11 +4525,11 @@
    ],
    "input": [
     "scaled_dot_product_attention_2",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@357 [scaled_dot_product_attention_2_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64])] QuantizeLinear [scaled_dot_product_attention_2:(ty=1,shape=[1,6,1500,64]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@357 [scaled_dot_product_attention_2_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64])] QuantizeLinear [scaled_dot_product_attention_2:(ty=1,shape=[1,6,1500,64]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -4538,11 +4538,11 @@
    ],
    "input": [
     "scaled_dot_product_attention_2_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@358 [scaled_dot_product_attention_2_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,64])] DequantizeLinear [scaled_dot_product_attention_2_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@358 [scaled_dot_product_attention_2_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,64])] DequantizeLinear [scaled_dot_product_attention_2_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,64]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -4562,11 +4562,11 @@
    ],
    "input": [
     "permute_12",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@360 [permute_12_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64])] QuantizeLinear [permute_12:(ty=1,shape=[1,1500,6,64]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@360 [permute_12_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64])] QuantizeLinear [permute_12:(ty=1,shape=[1,1500,6,64]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -4575,11 +4575,11 @@
    ],
    "input": [
     "permute_12_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@361 [permute_12_DequantizeLinear_Output:(ty=1,shape=[1,1500,6,64])] DequantizeLinear [permute_12_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@361 [permute_12_DequantizeLinear_Output:(ty=1,shape=[1,1500,6,64])] DequantizeLinear [permute_12_QuantizeLinear_Output:(ty=2,shape=[1,1500,6,64]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4600,11 +4600,11 @@
    ],
    "input": [
     "view_11",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@363 [view_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [view_11:(ty=1,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@363 [view_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [view_11:(ty=1,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4613,11 +4613,11 @@
    ],
    "input": [
     "view_11_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@364 [view_11_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [view_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@364 [view_11_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [view_11_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4638,11 +4638,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_31",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@366 [gemm_input_reshape_arg_token_31_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_input_reshape_arg_token_31:(ty=1,shape=[1500,384]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@366 [gemm_input_reshape_arg_token_31_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_input_reshape_arg_token_31:(ty=1,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4651,11 +4651,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_31_QuantizeLinear_Output",
-    "add_5_scale",
+    "val_247_scale",
     "scaled_dot_product_attention_2_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@367 [gemm_input_reshape_arg_token_31_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_input_reshape_arg_token_31_QuantizeLinear_Output:(ty=2,shape=[1500,384]),add_5_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
+   "comment": "@367 [gemm_input_reshape_arg_token_31_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_input_reshape_arg_token_31_QuantizeLinear_Output:(ty=2,shape=[1500,384]),val_247_scale:(ty=1,shape=[]),scaled_dot_product_attention_2_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4677,11 +4677,11 @@
    ],
    "input": [
     "blocks.2.attn.out.bias_quantized",
-    "add_5_scale",
+    "blocks.1.mlp.2.bias_scale",
     "blocks.2.attn.out.bias_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@22 [blocks.2.attn.out.bias_DequantizeLinear_Output:(ty=1,shape=[384])] DequantizeLinear [blocks.2.attn.out.bias_quantized:(ty=3,shape=[384]),add_5_scale:(ty=1,shape=[]),blocks.2.attn.out.bias_zero_point:(ty=3,shape=[])]",
+   "comment": "@22 [blocks.2.attn.out.bias_DequantizeLinear_Output:(ty=1,shape=[384])] DequantizeLinear [blocks.2.attn.out.bias_quantized:(ty=3,shape=[384]),blocks.1.mlp.2.bias_scale:(ty=1,shape=[]),blocks.2.attn.out.bias_zero_point:(ty=3,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4779,11 +4779,11 @@
    ],
    "input": [
     "add_5",
-    "add_5_scale",
+    "ln_post.bias_scale",
     "add_5_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@375 [add_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_5:(ty=1,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),add_5_zero_point:(ty=2,shape=[])]",
+   "comment": "@375 [add_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_5:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_5_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4792,11 +4792,11 @@
    ],
    "input": [
     "add_5_QuantizeLinear_Output",
-    "add_5_scale",
+    "ln_post.bias_scale",
     "add_5_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@533 [add_5_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),add_5_zero_point:(ty=2,shape=[])]",
+   "comment": "@533 [add_5_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_5_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4805,11 +4805,11 @@
    ],
    "input": [
     "add_5_QuantizeLinear_Output",
-    "add_5_scale",
+    "ln_post.bias_scale",
     "add_5_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@376 [add_5_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),add_5_scale:(ty=1,shape=[]),add_5_zero_point:(ty=2,shape=[])]",
+   "comment": "@376 [add_5_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_5_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -4960,11 +4960,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_40",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "gemm_output_reshape_arg_token_40_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@384 [gemm_output_reshape_arg_token_40_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_output_reshape_arg_token_40:(ty=1,shape=[1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
+   "comment": "@384 [gemm_output_reshape_arg_token_40_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_output_reshape_arg_token_40:(ty=1,shape=[1500,1536]),layer_norm_8_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4973,11 +4973,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_40_QuantizeLinear_Output",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "gemm_output_reshape_arg_token_40_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@385 [gemm_output_reshape_arg_token_40_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_output_reshape_arg_token_40_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
+   "comment": "@385 [gemm_output_reshape_arg_token_40_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_output_reshape_arg_token_40_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),layer_norm_8_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -4998,11 +4998,11 @@
    ],
    "input": [
     "linear_16",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "gemm_output_reshape_arg_token_40_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@387 [linear_16_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [linear_16:(ty=1,shape=[1,1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
+   "comment": "@387 [linear_16_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [linear_16:(ty=1,shape=[1,1500,1536]),layer_norm_8_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -5011,11 +5011,11 @@
    ],
    "input": [
     "linear_16_QuantizeLinear_Output",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "gemm_output_reshape_arg_token_40_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@388 [linear_16_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [linear_16_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
+   "comment": "@388 [linear_16_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [linear_16_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),layer_norm_8_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_40_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -5035,11 +5035,11 @@
    ],
    "input": [
     "gelu_4",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_4_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@390 [gelu_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_4:(ty=1,shape=[1,1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
+   "comment": "@390 [gelu_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_4:(ty=1,shape=[1,1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -5048,11 +5048,11 @@
    ],
    "input": [
     "gelu_4_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_4_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@391 [gelu_4_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
+   "comment": "@391 [gelu_4_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_4_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -5073,11 +5073,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_43",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_4_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@393 [gemm_input_reshape_arg_token_43_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_43:(ty=1,shape=[1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
+   "comment": "@393 [gemm_input_reshape_arg_token_43_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_43:(ty=1,shape=[1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -5086,11 +5086,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_43_QuantizeLinear_Output",
-    "val_247_scale",
+    "ln_post.bias_scale",
     "gelu_4_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@394 [gemm_input_reshape_arg_token_43_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_43_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),val_247_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
+   "comment": "@394 [gemm_input_reshape_arg_token_43_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_43_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),ln_post.bias_scale:(ty=1,shape=[]),gelu_4_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -5214,11 +5214,11 @@
    ],
    "input": [
     "add_6",
-    "val_247_scale",
+    "layer_norm_8_scale",
     "add_6_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@402 [add_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_6:(ty=1,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_6_zero_point:(ty=2,shape=[])]",
+   "comment": "@402 [add_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_6:(ty=1,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),add_6_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -5227,11 +5227,11 @@
    ],
    "input": [
     "add_6_QuantizeLinear_Output",
-    "val_247_scale",
+    "layer_norm_8_scale",
     "add_6_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@534 [add_6_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_6_zero_point:(ty=2,shape=[])]",
+   "comment": "@534 [add_6_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),add_6_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -5253,11 +5253,11 @@
    ],
    "input": [
     "add_6_QuantizeLinear_Output",
-    "val_247_scale",
+    "layer_norm_8_scale",
     "add_6_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@403 [add_6_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_247_scale:(ty=1,shape=[]),add_6_zero_point:(ty=2,shape=[])]",
+   "comment": "@403 [add_6_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),add_6_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -5305,11 +5305,11 @@
    ],
    "input": [
     "layer_norm_6",
-    "val_251_scale",
+    "layer_norm_8_scale",
     "layer_norm_6_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@405 [layer_norm_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [layer_norm_6:(ty=1,shape=[1,1500,384]),val_251_scale:(ty=1,shape=[]),layer_norm_6_zero_point:(ty=2,shape=[])]",
+   "comment": "@405 [layer_norm_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [layer_norm_6:(ty=1,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),layer_norm_6_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -5318,11 +5318,11 @@
    ],
    "input": [
     "layer_norm_6_QuantizeLinear_Output",
-    "val_251_scale",
+    "layer_norm_8_scale",
     "layer_norm_6_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@406 [layer_norm_6_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [layer_norm_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),val_251_scale:(ty=1,shape=[]),layer_norm_6_zero_point:(ty=2,shape=[])]",
+   "comment": "@406 [layer_norm_6_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [layer_norm_6_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),layer_norm_6_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -5892,11 +5892,11 @@
    ],
    "input": [
     "val_251",
-    "val_251_scale",
+    "layer_norm_8_scale",
     "val_251_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@459 [val_251_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500])] QuantizeLinear [val_251:(ty=1,shape=[1,6,1500,1500]),val_251_scale:(ty=1,shape=[]),val_251_zero_point:(ty=2,shape=[])]",
+   "comment": "@459 [val_251_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500])] QuantizeLinear [val_251:(ty=1,shape=[1,6,1500,1500]),layer_norm_8_scale:(ty=1,shape=[]),val_251_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -5905,11 +5905,11 @@
    ],
    "input": [
     "val_251_QuantizeLinear_Output",
-    "val_251_scale",
+    "layer_norm_8_scale",
     "val_251_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@460 [val_251_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,1500])] DequantizeLinear [val_251_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500]),val_251_scale:(ty=1,shape=[]),val_251_zero_point:(ty=2,shape=[])]",
+   "comment": "@460 [val_251_DequantizeLinear_Output:(ty=1,shape=[1,6,1500,1500])] DequantizeLinear [val_251_QuantizeLinear_Output:(ty=2,shape=[1,6,1500,1500]),layer_norm_8_scale:(ty=1,shape=[]),val_251_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6401,11 +6401,11 @@
    ],
    "input": [
     "add_7",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "add_7_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@483 [add_7_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_7:(ty=1,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_7_zero_point:(ty=2,shape=[])]",
+   "comment": "@483 [add_7_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [add_7:(ty=1,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),add_7_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6414,11 +6414,11 @@
    ],
    "input": [
     "add_7_QuantizeLinear_Output",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "add_7_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@537 [add_7_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_7_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_7_zero_point:(ty=2,shape=[])]",
+   "comment": "@537 [add_7_DequantizeLinear_Output/duplicated:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_7_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),add_7_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6427,11 +6427,11 @@
    ],
    "input": [
     "add_7_QuantizeLinear_Output",
-    "ln_post.bias_scale",
+    "layer_norm_8_scale",
     "add_7_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@484 [add_7_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_7_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),ln_post.bias_scale:(ty=1,shape=[]),add_7_zero_point:(ty=2,shape=[])]",
+   "comment": "@484 [add_7_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [add_7_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),layer_norm_8_scale:(ty=1,shape=[]),add_7_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -6657,11 +6657,11 @@
    ],
    "input": [
     "gelu_5",
-    "gelu_5_scale",
+    "add_8_scale",
     "gelu_5_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@498 [gelu_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_5:(ty=1,shape=[1,1500,1536]),gelu_5_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
+   "comment": "@498 [gelu_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536])] QuantizeLinear [gelu_5:(ty=1,shape=[1,1500,1536]),add_8_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
    "device": "CPU"
   },
   {
@@ -6670,11 +6670,11 @@
    ],
    "input": [
     "gelu_5_QuantizeLinear_Output",
-    "gelu_5_scale",
+    "add_8_scale",
     "gelu_5_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@499 [gelu_5_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),gelu_5_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
+   "comment": "@499 [gelu_5_DequantizeLinear_Output:(ty=1,shape=[1,1500,1536])] DequantizeLinear [gelu_5_QuantizeLinear_Output:(ty=2,shape=[1,1500,1536]),add_8_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6695,11 +6695,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_61",
-    "gelu_5_scale",
+    "add_8_scale",
     "gelu_5_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@501 [gemm_input_reshape_arg_token_61_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_61:(ty=1,shape=[1500,1536]),gelu_5_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
+   "comment": "@501 [gemm_input_reshape_arg_token_61_QuantizeLinear_Output:(ty=2,shape=[1500,1536])] QuantizeLinear [gemm_input_reshape_arg_token_61:(ty=1,shape=[1500,1536]),add_8_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6708,11 +6708,11 @@
    ],
    "input": [
     "gemm_input_reshape_arg_token_61_QuantizeLinear_Output",
-    "gelu_5_scale",
+    "add_8_scale",
     "gelu_5_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@502 [gemm_input_reshape_arg_token_61_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_61_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),gelu_5_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
+   "comment": "@502 [gemm_input_reshape_arg_token_61_DequantizeLinear_Output:(ty=1,shape=[1500,1536])] DequantizeLinear [gemm_input_reshape_arg_token_61_QuantizeLinear_Output:(ty=2,shape=[1500,1536]),add_8_scale:(ty=1,shape=[]),gelu_5_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6760,11 +6760,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_64",
-    "gelu_5_scale",
+    "gemm_output_reshape_arg_token_64_scale",
     "gemm_output_reshape_arg_token_64_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@504 [gemm_output_reshape_arg_token_64_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_64:(ty=1,shape=[1500,384]),gelu_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
+   "comment": "@504 [gemm_output_reshape_arg_token_64_QuantizeLinear_Output:(ty=2,shape=[1500,384])] QuantizeLinear [gemm_output_reshape_arg_token_64:(ty=1,shape=[1500,384]),gemm_output_reshape_arg_token_64_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6773,11 +6773,11 @@
    ],
    "input": [
     "gemm_output_reshape_arg_token_64_QuantizeLinear_Output",
-    "gelu_5_scale",
+    "gemm_output_reshape_arg_token_64_scale",
     "gemm_output_reshape_arg_token_64_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@505 [gemm_output_reshape_arg_token_64_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_64_QuantizeLinear_Output:(ty=2,shape=[1500,384]),gelu_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
+   "comment": "@505 [gemm_output_reshape_arg_token_64_DequantizeLinear_Output:(ty=1,shape=[1500,384])] DequantizeLinear [gemm_output_reshape_arg_token_64_QuantizeLinear_Output:(ty=2,shape=[1500,384]),gemm_output_reshape_arg_token_64_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6798,11 +6798,11 @@
    ],
    "input": [
     "linear_23",
-    "gelu_5_scale",
+    "gemm_output_reshape_arg_token_64_scale",
     "gemm_output_reshape_arg_token_64_zero_point"
    ],
    "opType": "QuantizeLinear",
-   "comment": "@507 [linear_23_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_23:(ty=1,shape=[1,1500,384]),gelu_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
+   "comment": "@507 [linear_23_QuantizeLinear_Output:(ty=2,shape=[1,1500,384])] QuantizeLinear [linear_23:(ty=1,shape=[1,1500,384]),gemm_output_reshape_arg_token_64_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
@@ -6811,11 +6811,11 @@
    ],
    "input": [
     "linear_23_QuantizeLinear_Output",
-    "gelu_5_scale",
+    "gemm_output_reshape_arg_token_64_scale",
     "gemm_output_reshape_arg_token_64_zero_point"
    ],
    "opType": "DequantizeLinear",
-   "comment": "@508 [linear_23_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_23_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),gelu_5_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
+   "comment": "@508 [linear_23_DequantizeLinear_Output:(ty=1,shape=[1,1500,384])] DequantizeLinear [linear_23_QuantizeLinear_Output:(ty=2,shape=[1,1500,384]),gemm_output_reshape_arg_token_64_scale:(ty=1,shape=[]),gemm_output_reshape_arg_token_64_zero_point:(ty=2,shape=[])]",
    "device": "NPU"
   },
   {
