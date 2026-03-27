@@ -1,0 +1,18 @@
+{
+  "passes": [
+    {
+      "name": "init",
+      "plugin": "vaip-pass_init"
+    },
+    {
+      "name": "vaiml",
+      "plugin": "vaip-pass_vaiml",
+      "disabled": false
+    },
+    {
+      "name": "vaiml_partition",
+      "plugin": "vaip-pass_vaiml_partition",
+      "disabled": false
+    }
+  ]
+}

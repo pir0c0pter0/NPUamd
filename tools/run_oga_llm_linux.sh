@@ -64,7 +64,23 @@ is_lfs_pointer() {
   if [[ ! -f "$path" ]]; then
     return 1
   fi
-  [[ "$(sed -n '1p' "$path" 2>/dev/null || true)" == "version https://git-lfs.github.com/spec/v1" ]]
+  python3 - "$path" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+
+try:
+    with path.open("rb") as handle:
+        first_line = handle.readline(128)
+except OSError:
+    raise SystemExit(1)
+
+if first_line.rstrip(b"\r\n") == b"version https://git-lfs.github.com/spec/v1":
+    raise SystemExit(0)
+
+raise SystemExit(1)
+PY
 }
 
 require_materialized_file() {
@@ -98,6 +114,143 @@ require_executable_file() {
     printf '[FAIL] %s is not executable: %s\n' "$label" "$path" >&2
     exit 1
   fi
+}
+
+collect_required_model_files() {
+  local model_dir="$1"
+  python3 - "$model_dir" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+
+def fail(message: str) -> None:
+    print(f"[FAIL] {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def add_required(required: list[str], seen: set[str], rel_path: str) -> None:
+    normalized = rel_path.replace("\\", "/").strip()
+    if not normalized:
+        return
+    normalized = normalized.removeprefix("./")
+    if normalized not in seen:
+        seen.add(normalized)
+        required.append(normalized)
+
+
+model_dir = Path(sys.argv[1]).resolve()
+config_path = model_dir / "genai_config.json"
+
+try:
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+except FileNotFoundError:
+    fail(f"missing genai_config.json: {config_path}")
+except json.JSONDecodeError as exc:
+    fail(f"invalid genai_config.json: {config_path}: {exc}")
+
+decoder = config.get("model", {}).get("decoder")
+if not isinstance(decoder, dict):
+    fail(f"missing model.decoder in {config_path}")
+
+decoder_filename = decoder.get("filename")
+if not isinstance(decoder_filename, str) or not decoder_filename.strip():
+    fail(f"missing model.decoder.filename in {config_path}")
+
+required: list[str] = []
+seen: set[str] = set()
+add_required(required, seen, decoder_filename)
+
+onnx_path = model_dir / decoder_filename
+onnx_sidecar = model_dir / f"{decoder_filename}.data"
+if onnx_sidecar.exists():
+    add_required(required, seen, f"{decoder_filename}.data")
+
+provider_options = decoder.get("session_options", {}).get("provider_options", [])
+if isinstance(provider_options, list):
+    for provider_entry in provider_options:
+        if not isinstance(provider_entry, dict):
+            continue
+        for provider_config in provider_entry.values():
+            if not isinstance(provider_config, dict):
+                continue
+            external_data_file = provider_config.get("external_data_file")
+            if not isinstance(external_data_file, str) or not external_data_file.strip():
+                continue
+            add_required(required, seen, external_data_file)
+            external_data_name = Path(external_data_file.replace("\\", "/")).name
+            if external_data_name.endswith(".pb.bin"):
+                external_weights = external_data_name[: -len(".pb.bin")] + ".bin"
+                if (model_dir / external_weights).exists():
+                    add_required(required, seen, external_weights)
+
+if onnx_path.is_file():
+    referenced_files: set[str] = set()
+    for match in re.finditer(rb"([A-Za-z0-9_.\\/-]+\.(?:bin|data))", onnx_path.read_bytes()):
+        candidate = match.group(1).decode("utf-8", errors="ignore").replace("\\", "/")
+        candidate_path = model_dir / candidate
+        if candidate_path.exists():
+            referenced_files.add(candidate)
+            continue
+
+        basename = Path(candidate).name
+        if basename and (model_dir / basename).exists():
+            referenced_files.add(basename)
+
+    for candidate in sorted(referenced_files):
+        add_required(required, seen, candidate)
+
+dd_plugins_dir = model_dir / "dd_plugins"
+if dd_plugins_dir.is_dir():
+    plugin_files = sorted(
+        path.relative_to(model_dir).as_posix()
+        for path in dd_plugins_dir.rglob("*")
+        if path.is_file()
+    )
+    if not plugin_files:
+        fail(f"dd_plugins exists but is empty: {dd_plugins_dir}")
+    for rel_path in plugin_files:
+        add_required(required, seen, rel_path)
+
+for rel_path in required:
+    print(rel_path)
+PY
+}
+
+model_uses_provider() {
+  local model_dir="$1"
+  local provider_name="$2"
+  python3 - "$model_dir" "$provider_name" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+model_dir = Path(sys.argv[1]).resolve()
+provider_name = sys.argv[2]
+config_path = model_dir / "genai_config.json"
+
+try:
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(1)
+
+provider_options = (
+    config.get("model", {})
+    .get("decoder", {})
+    .get("session_options", {})
+    .get("provider_options", [])
+)
+
+if not isinstance(provider_options, list):
+    raise SystemExit(1)
+
+for entry in provider_options:
+    if isinstance(entry, dict) and provider_name in entry:
+        raise SystemExit(0)
+
+raise SystemExit(1)
+PY
 }
 
 finalize_paths() {
@@ -257,13 +410,21 @@ link_model_into_run_dir() {
 }
 
 validate_model() {
+  local rel_path
+  local required_files=()
+
   require_dir "$MODEL_DIR" "OGA model directory"
   require_materialized_file "$MODEL_DIR/genai_config.json" "genai_config.json"
-  require_materialized_file "$MODEL_DIR/fusion.onnx" "fusion.onnx"
-  require_materialized_file "$MODEL_DIR/fusion.onnx.data" "fusion.onnx.data"
-  require_materialized_file "$MODEL_DIR/prefill.bin" "prefill.bin"
-  require_materialized_file "$MODEL_DIR/prefill.pb.bin" "prefill.pb.bin"
-  require_materialized_file "$MODEL_DIR/.cache/MatMulNBits_2_0_meta.json" "MatMulNBits_2_0_meta.json"
+
+  mapfile -t required_files < <(collect_required_model_files "$MODEL_DIR")
+  if ((${#required_files[@]} == 0)); then
+    printf '[FAIL] could not infer required OGA model files from %s/genai_config.json\n' "$MODEL_DIR" >&2
+    exit 1
+  fi
+
+  for rel_path in "${required_files[@]}"; do
+    require_materialized_file "$MODEL_DIR/$rel_path" "OGA model artifact ($rel_path)"
+  done
 }
 
 patch_model_for_linux() {
@@ -271,6 +432,12 @@ patch_model_for_linux() {
   python3 "$HUB_DIR/tools/patch_oga_linux_model.py" \
     "$MODEL_DIR" \
     --custom-ops-library "deployment/lib/libonnx_custom_ops.so"
+}
+
+validate_runtime_for_model() {
+  if model_uses_provider "$MODEL_DIR" "RyzenAI"; then
+    require_materialized_glob "$DEPLOYMENT_DIR/lib/libonnxruntime_providers_ryzenai.so*" "RyzenAI provider library"
+  fi
 }
 
 run_model_benchmark() {
@@ -307,6 +474,7 @@ main() {
   stage_runtime
   validate_model
   patch_model_for_linux
+  validate_runtime_for_model
   link_model_into_run_dir
 
   if [[ "$PREPARE_ONLY" -eq 1 ]]; then

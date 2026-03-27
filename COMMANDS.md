@@ -595,6 +595,9 @@ O que ele faz:
 - fixa `RUN_DIR=runtime/llm_linux/run_qwen3_14b_hybrid`
 - fixa `MODEL_NAME=Qwen3-14B-onnx-ryzenai-1.7-hybrid`
 - reaproveita o mesmo stage/patch do runner `OGA` generico
+- valida o pacote do modelo a partir de `genai_config.json`, em vez de assumir o layout `Phi`
+- no pacote local atual do `Qwen3`, isso cobre `model_jit.onnx`, `model_jit.onnx.data`, `model_jit.pb.bin`, `model_jit.bin` e `dd_plugins/`
+- se o `genai_config.json` pedir `provider_options: RyzenAI`, o preflight tambem exige `deployment/lib/libonnxruntime_providers_ryzenai.so`
 
 Para apontar para o modelo materializado:
 
@@ -607,8 +610,39 @@ Leitura correta:
 
 - este e o alvo oficial AMD para o passo seguinte depois de `Phi-3.5`
 - ele depende da mesma tree Linux `RYZEN_AI_INSTALLATION_PATH`
+- a ausencia de `.cache/MatMulNBits_2_0_meta.json` ja nao quebra o patch helper quando esse arquivo opcional nao vier no pacote
+- o `onnxruntime-genai` generico nao substitui esse runtime: sem a tree AMD, o load cai primeiro em `libonnx_custom_ops.so` e depois em `libonnxruntime_providers_ryzenai.so`
+- a copia segura de `~/Downloads/ryzen_ai-1.4.0.tgz` para `~/amd-rai-linux/installers/ryzen_ai-1.4.0.tgz` tambem nao substitui esse runtime
+- o `1.4.0` deixa o LLM runtime empacotado em `npu-llm.tar.gz`, com `OGA 0.6.0` e libs `VitisAI`; ele nao entrega a tree `venv/deployment` e `venv/LLM/examples` no formato `1.6.1+` esperado pela doc Linux atual
+- os probes fechados em `2026-03-26` mostram o corte de compatibilidade: `OGA 0.6.0` do `1.4.0` nao aceita `model.type=qwen3`, e `onnxruntime-genai 0.12.2` aceita `qwen3` mas nao foi compilado com `VitisAIExecutionProvider`
 - no host atual, o erro correto agora e:
   `missing RYZEN_AI_VENV/RYZEN_AI_INSTALLATION_PATH`
+
+## Cópia segura do instalador Linux `1.4.0`
+
+Para trabalhar em cima da copia sem tocar no original em `Downloads`:
+
+```bash
+mkdir -p /var/home/mariostjr/amd-rai-linux/installers
+cp --reflink=auto -f \
+  /var/home/mariostjr/Downloads/ryzen_ai-1.4.0.tgz \
+  /var/home/mariostjr/amd-rai-linux/installers/ryzen_ai-1.4.0.tgz
+```
+
+Para inspecionar o runtime de LLM empacotado nesse instalador:
+
+```bash
+mkdir -p /var/home/mariostjr/amd-rai-linux/runtime_probe_20260326
+tar --no-same-owner -xzf \
+  /var/home/mariostjr/amd-rai-linux/installers/ryzen_ai-1.4.0_src/npu-llm.tar.gz \
+  -C /var/home/mariostjr/amd-rai-linux/runtime_probe_20260326
+```
+
+Leitura correta:
+
+- essa copia e util para inventariar o `npu-llm.tar.gz` e as libs `VitisAI`
+- ela nao resolve o `Qwen3-14B-onnx-ryzenai-1.7-hybrid` no Linux atual
+- para esse modelo, o proximo alvo real continua sendo uma tree AMD mais nova no formato `ryzen_ai-1.6.1+/venv`
 
 ## Preflight do `Qwen3` grande em GPU
 
@@ -699,6 +733,82 @@ Leitura correta:
 - se ambos aparecerem, o container já pode ser reaproveitado para exportação ONNX
 - se nao aparecerem, a instalação precisa ser retomada ou refeita
 
+## Runner generico de LLM em GPU
+
+Runner generico que suporta qualquer modelo causal via `transformers` + `accelerate`, incluindo GPTQ e BNB4:
+
+```bash
+MODEL_ID='Qwen/Qwen3-14B' \
+  bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_llm_gpu_measured.sh
+```
+
+Com quantizacao GPTQ:
+
+```bash
+MODEL_ID='empirischtech/DeepSeek-R1-Distill-Llama-70B-gptq-4bit' \
+QUANTIZATION=gptq \
+  bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_llm_gpu_measured.sh
+```
+
+Com quantizacao BNB4 on-load:
+
+```bash
+MODEL_ID='deepseek-ai/DeepSeek-R1-Distill-Llama-70B' \
+QUANTIZATION=bnb4 \
+  bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_llm_gpu_measured.sh
+```
+
+Wrapper dedicado para DeepSeek R1 70B:
+
+```bash
+MODEL_ID='empirischtech/DeepSeek-R1-Distill-Llama-70B-gptq-4bit' \
+  bash /var/home/mariostjr/Documents/hubs/NPUamd/tools/run_deepseek_r1_70b_gpu.sh
+```
+
+Leitura correta:
+
+- `DeepSeek-R1-Distill-Qwen-72B` nao existe; a serie Qwen distillada vai ate 32B
+- o modelo 70B usa base Llama: `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`
+- Q4 GPTQ (~37-42 GB VRAM) cabe no split `64/64`
+- GPTQ no container ROCm falhou por build do `auto-gptq`/`gptqmodel`; alternativa pratica: `ollama` com GGUF
+
+## Probe direto com tree npu-llm do 1.4.0
+
+Para testar `model_benchmark` do 1.4.0 com um modelo:
+
+```bash
+NPU_LLM=/var/home/mariostjr/amd-rai-linux/runtime_probe_20260326/npu-llm
+COMPAT_LIB=/var/home/mariostjr/Documents/hubs/NPUamd/runtime/ubuntu22/lib
+XRT_LIB=/var/home/mariostjr/xrt-ve2/lib64
+
+LD_LIBRARY_PATH="$NPU_LLM/lib:$COMPAT_LIB:$XRT_LIB" \
+  $NPU_LLM/model_benchmark \
+  -i /caminho/para/modelo/ \
+  -p prompt.txt -l 8 -g 4 -r 1 -w 0 -v
+```
+
+Leitura correta:
+
+- o `model_benchmark` e `run_llm` do 1.4.0 funcionam no host com `LD_LIBRARY_PATH`
+- o VitisAI EP carrega com sucesso
+- o OGA 0.6.0 nao conhece `model_type=qwen3` nem provider `RyzenAI`
+- o modelo `Qwen3-14B-hybrid` usa 85% de ops `com.ryzenai` proprietarios da versao 1.7
+
+## Estado das libs VAIML no ryzen14
+
+Em `2026-03-26`, as libs VAIML reais foram copiadas do `npu-llm` do 1.4.0 para `ryzen14`:
+
+- `libvaip-pass_vaiml_partition.so` (3.3 MB, real — substituiu symlink-stub de 33 KB)
+- `libvaip-pass_vaiml_custom_op.so` (3.9 MB)
+- `libvaip-pass_vaiml_mlopslib.so` (3.2 MB)
+- `libvaip-pass_vaiml_remove_dynamic_nodes.so` (2.0 MB)
+- `libvaip-pass_vaiml_remove_isolated_subgraph.so` (2.1 MB)
+- `libvaip-pass_vaiml_shape_infer.so` (385 KB)
+
+O backup do stub original esta em `libvaip-pass_vaiml_partition.so.bak`.
+
+O encoder XINT8 nao regrediu com essas libs. O decoder XINT8 continua CPU 934 — o config DPU/DD nao ativa o caminho VAIML para o decoder.
+
 ## Ordem de retomada
 
 Ao retomar depois de limpar a conversa, seguir esta ordem:
@@ -707,3 +817,5 @@ Ao retomar depois de limpar a conversa, seguir esta ordem:
 2. fechar `tools/run_oga_llm_linux.sh` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
 3. subir `tools/run_qwen3_14b_hybrid.sh`
 4. abrir a frente `Qwen3` grande em GPU so depois do preflight `tools/check_qwen3_gpu_env.sh`
+5. testar decoder Whisper com config VAIP que ative explicitamente o pass `vaiml_partition`
+6. para LLM 70B em GPU, usar `ollama` com GGUF em vez de GPTQ no container ROCm

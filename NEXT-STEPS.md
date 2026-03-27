@@ -58,12 +58,18 @@ Estado atual:
 - a release `Ryzen AI 1.7.0` da AMD ja cita `Qwen-3-14b-Instruct`
 - o wrapper `tools/run_qwen3_14b_hybrid.sh` agora fixa `RUN_DIR` e `MODEL_NAME` para esse alvo
 - o wrapper foi corrigido e hoje falha no ponto certo: falta `RYZEN_AI_VENV/RYZEN_AI_INSTALLATION_PATH` com a tree Linux oficial da AMD
+- a copia segura de `~/Downloads/ryzen_ai-1.4.0.tgz` para `~/amd-rai-linux/installers/ryzen_ai-1.4.0.tgz` ja foi inspecionada e nao resolve este passo
+- o `1.4.0` deixa o runtime de LLM em `npu-llm.tar.gz` com `OGA 0.6.0 / VitisAI`, nao materializa a tree `venv/deployment` + `venv/LLM/examples` no formato `1.6.1+`, e os probes falham em `qwen3` e no provider
+- o proximo desbloqueio real deste passo agora e uma tree Linux AMD mais nova, no formato `ryzen_ai-1.6.1+/venv`
 - esse passo continua dependente do passo 2, porque usa a mesma stack `OGA` Linux
+- em `2026-03-26` foi tentado forcar `model_type=qwen2` + `provider=VitisAI` com o runtime `npu-llm` do 1.4.0; o VitisAI EP carregou, mas o modelo falhou com `com.ryzenai:MatMulNBits is not a registered function/op`
+- inspecao do ONNX mostrou que 85% dos nodes (282/332) usam ops `com.ryzenai` proprietarios da versao 1.7, incompativeis com qualquer lib do 1.4.0
+- compilar ORT com VitisAI EP do source tambem e inviavel: o build falha em GCC 13/14 (issue microsoft/onnxruntime#27097)
 
 Objetivo:
 
 - subir `Qwen3-14B-onnx-ryzenai-1.7-hybrid` no caminho hibrido oficial da AMD
-- medir se o host aguenta a trilha oficial com `96 GB` de VRAM reservados para a iGPU
+- medir se o host aguenta a trilha oficial no split atual `64 GB iGPU / 64 GB CPU`
 
 Critério de sucesso:
 
@@ -93,6 +99,35 @@ Leitura correta:
 - nesta familia `Qwen3`, o proximo alvo natural acima de `14B` para GPU-only tende a ser `32B`, nao `72B`
 - esta frente e separada da trilha oficial AMD `OGA hybrid`
 - o split atual `64/64` resolveu o gargalo que existia no `96/32`
+- em `2026-03-26` foi criada infra generica de runner GPU (`tools/run_llm_gpu_*.sh`, `tools/run_llm_gpu_transformers.py`) que suporta GPTQ e BNB4
+- foi criado wrapper `tools/run_deepseek_r1_70b_gpu.sh` para `DeepSeek-R1-Distill-Llama-70B`
+- nota: `DeepSeek-R1-Distill-Qwen-72B` nao existe; a serie Qwen distillada vai ate 32B; o modelo 70B usa base Llama
+- teste GPTQ Q4 no container ROCm falhou por problemas de build do `auto-gptq`/`gptqmodel`; alternativa mais pratica para 70B: `ollama` ou `llama.cpp` com GGUF
+
+## Passo 5 — Whisper decoder na NPU
+
+Estado atual:
+
+- o VAIML com tree npu-llm completa no container Ubuntu 22.04 **particiona 99.6% do decoder FP32** (235/236 ops, 35.84 GOPs)
+- a compilacao falhou por falta de `aiecompiler` (`sh: 1: aiecompiler: not found`)
+- o decoder XINT8 nao serve para VAIML — os ops QDQ ficam abaixo do threshold de 2% GOPs
+- o caminho correto e **FP32 → VAIML → BF16** no NPU
+- misturar libs ryzen14 com npu-llm no host causa crash; tree npu-llm completa no container funciona
+- o config VAIML-only (`runtime/whisper/configs/vaip_vaiml_only.json`) com passes `init`, `vaiml`, `vaiml_partition` e o que ativa o caminho
+
+Marco alcancado em `2026-03-26`:
+
+- o decoder FP32 compilou com sucesso via VAIML no container Ubuntu 22.04
+- **235 de 236 ops (99.6%) offloaded para NPU via VAIML**
+- compilacao requer: tree npu-llm completa no `LD_LIBRARY_PATH`, `aiecompiler` no `PATH`, locale, kernel headers, symlinks de aie_api
+- o cache do modelo compilado esta em `/tmp/dec_fp32_vaiml_aie4/dec_fp32_aie4/` no container
+- config usado: `runtime/whisper/configs/vaip_vaiml_only.json`
+
+Proximo passo:
+
+- rodar inferencia real do decoder FP32 compilado na NPU e medir latencia
+- integrar no pipeline hibrido `tools/run_whisper_full_hybrid.sh` (encoder XINT8 NPU + decoder FP32 VAIML NPU)
+- medir transcricao completa com audio real
 
 ## O que nao fazer
 

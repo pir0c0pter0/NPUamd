@@ -278,17 +278,107 @@ Tambem foi retomado o wrapper do `Qwen3-14B` no caminho hibrido oficial AMD.
 Estado validado agora:
 
 - o script `tools/run_oga_llm_linux.sh` tinha erros de shell e foi corrigido
+- o mesmo runner deixou de assumir apenas o layout `Phi` e agora infere os artefatos obrigatorios a partir de `genai_config.json`
+- isso cobre o pacote local do `Qwen3-14B hybrid`, que usa `model_jit.onnx`, `model_jit.onnx.data`, `model_jit.pb.bin`, `model_jit.bin` e `dd_plugins/`
+- o helper `tools/patch_oga_linux_model.py` agora aceita a ausencia de `.cache/MatMulNBits_2_0_meta.json` quando esse metadado opcional nao vier no pacote do modelo
+- o preflight do runner agora detecta tambem a falta de `deployment/lib/libonnxruntime_providers_ryzenai.so`, exigida pelo `provider_options: RyzenAI` desse pacote `Qwen3`
 - o wrapper `tools/run_qwen3_14b_hybrid.sh` agora chega na validacao correta do ambiente
 - o modelo `runtime/llm_linux/models/Qwen3-14B-onnx-ryzenai-1.7-hybrid` esta materializado localmente
+- foi validado em `2026-03-26` que, com um runtime Linux staged nao-vazio em diretório temporario, `bash tools/run_qwen3_14b_hybrid.sh --prepare-only` fecha o stage/patch do `Qwen3` sem cair mais na suposicao antiga de layout `Phi`
+- tambem foi validado em `2026-03-26` que o `onnxruntime-genai==0.12.2` generico nao basta: com `custom_ops_library` presente o load falha por falta de `deployment/lib/libonnx_custom_ops.so`; sem esse campo, o load seguinte falha por falta de `libonnxruntime_providers_ryzenai.so`
 - `bash tools/run_qwen3_14b_hybrid.sh` hoje falha cedo com a mensagem correta sobre runtime Linux incompleto
 - o host continua sem `RYZEN_AI_VENV` ou `RYZEN_AI_INSTALLATION_PATH`
-- o host continua sem `deployment/lib/libonnxruntime-genai.so`, `libonnx_custom_ops.so`, `libryzen_mm.so` e `model_benchmark` vindos de uma tree Linux oficial recente
+- o host continua sem `deployment/lib/libonnxruntime-genai.so`, `libonnx_custom_ops.so`, `libryzen_mm.so`, `libonnxruntime_providers_ryzenai.so` e `model_benchmark` vindos de uma tree Linux oficial recente
+- tambem foi validado em `2026-03-26` que a copia segura de `~/Downloads/ryzen_ai-1.4.0.tgz` para `~/amd-rai-linux/installers/ryzen_ai-1.4.0.tgz` preserva o original intacto, mas nao fecha este passo
+- esse instalador `1.4.0` consegue popular wheels e `VOE` em container `Ubuntu 22.04`, porem nao materializa no host a tree `venv/deployment/` e `venv/LLM/examples/` esperada hoje pela doc `llm_linux`
+- no `1.4.0`, o runtime de LLM fica empacotado em `npu-llm.tar.gz` e `voe/lib`, nao como tree pronta `ryzen_ai-1.6.1+/venv`
+- o `npu-llm.tar.gz` do `1.4.0` traz `model_benchmark`, `run_llm`, `libonnxruntime-genai.so`, `libonnxruntime_providers_vitisai.so` e `libonnxruntime_vitis_ai_custom_ops.so`, mas nao traz `libonnx_custom_ops.so`, `libryzen_mm.so` nem `libonnxruntime_providers_ryzenai.so`
+- probes limitados mostraram o corte de versao: o `onnxruntime_genai_ryzenai 0.6.0` do `1.4.0` conhece `qwen2`, mas nao `qwen3`; o `model_benchmark` retorna `Unsupported model_type in config.json: qwen3`
+- forcar o pacote `Qwen3` para `model.type=qwen2` tambem nao fecha o caminho: o `model_benchmark` do `1.4.0` retorna `Unknown provider type: RyzenAI`, e a API Python `0.6.0` tambem rejeita `VitisAI`
+- na outra ponta, o `onnxruntime-genai 0.12.2` generico aceita `qwen3`, mas continua exigindo `libonnxruntime_providers_ryzenai.so`; se o provider e trocado para `VitisAI`, esse build responde `VitisAI execution provider is not supported in this build`
 
 Leitura correta:
 
-- o bloqueio do `Qwen3-14B hybrid` hoje nao e bug do hub
-- o bloqueio real continua sendo a ausencia da tree Linux oficial da AMD para `OGA`
-- sem essa tree, o `model_benchmark` nem chega a subir no host Linux
+- o bloqueio imediato do `Qwen3-14B hybrid` deixou de ser a suposicao errada de layout no hub
+- o bloqueio real passou a ser duplo: falta a tree Linux oficial recente da AMD para `OGA`, e a copia `1.4.0` que ja foi inspecionada e estruturalmente antiga demais para este `Qwen3-14B-onnx-ryzenai-1.7-hybrid`
+- para retomar o caminho hibrido oficial em Linux, o alvo minimo agora e uma instalacao AMD mais nova no formato `ryzen_ai-1.6.1+/venv`, alinhada com `Qwen3` e com o provider `RyzenAI`
+- a copia `1.4.0` segue util para inspecao de `OGA 0.6.0 / VitisAI`, mas nao como runtime final deste modelo
+
+### Probes avancados com tree npu-llm do 1.4.0 (2026-03-26)
+
+Foi feita uma rodada de probes tentando usar os binarios e libs do `npu-llm` do instalador 1.4.0 para desbloquear LLM na NPU e melhorar o offload do Whisper decoder.
+
+Descobertas sobre a tree `npu-llm`:
+
+- `model_benchmark` (237 KB) e `run_llm` (155 KB) rodam no host com `LD_LIBRARY_PATH=npu-llm/lib`
+- a tree tem 236 `.so` (~575 MB), incluindo `libonnxruntime-genai.so` (4.4 MB), `libonnxruntime_vitis_ai_custom_ops.so` (865 KB) e `libtransaction.so` (309 MB)
+- a tree tem `libvaip-pass_vaiml_partition.so` **real** (3.3 MB) + 5 libs VAIML auxiliares — a lib que faltava na tree `ryzen14`
+- a tree tem `vaip_llm.json` com passes `matmul_nbits` e `SSMLP`
+- a tree **nao** tem `libonnx_custom_ops.so`, `libryzen_mm.so` nem `libonnxruntime_providers_ryzenai.so`
+
+Probes de LLM com o Qwen3-14B:
+
+- forcar `model_type=qwen2` + `provider=VitisAI` no genai_config fez o `model_benchmark` do 1.4.0 aceitar o modelo e carregar o VitisAI EP
+- o load seguinte falhou com `com.ryzenai:MatMulNBits(-1) is not a registered function/op`
+- apontar `custom_ops_library` para `libonnxruntime_vitis_ai_custom_ops.so` nao resolveu: o dominio `com.ryzenai` nao e registrado por essa lib
+- inspecao do `model_jit.onnx` do Qwen3 mostra 332 nodes, dos quais 282 (85%) usam ops no dominio `com.ryzenai`: `MatMulNBits(121)`, `SLRN(80)`, `GQO(40)`, `SSMLP(40)`, `CastAvx(1)`
+- esses ops sao proprietarios do EP `RyzenAI` da versao 1.7 e nao existem em nenhuma lib da tree 1.4.0
+- conclusao: o modelo `Qwen3-14B-onnx-ryzenai-1.7-hybrid` e **incompativel** com o runtime 1.4.0; o gap nao e so versao do OGA, e o modelo inteiro depender de custom ops que so existem no EP RyzenAI 1.7
+
+Probes de VAIML para o Whisper decoder:
+
+- a `libvaip-pass_vaiml_partition.so` real (3.3 MB) do `npu-llm` foi copiada para `ryzen14`, substituindo o symlink-stub de 33 KB
+- as 5 libs auxiliares VAIML tambem foram copiadas: `vaiml_custom_op`, `vaiml_mlopslib`, `vaiml_remove_dynamic_nodes`, `vaiml_remove_isolated_subgraph`, `vaiml_shape_infer`
+- o encoder XINT8 continua funcionando com NPU 416 / CPU 122 — nao regrediu
+- o decoder XINT8 continua em CPU 934 mesmo com todas as libs VAIML reais presentes
+- o config DPU/DD (`vaip_config_npu_2_3.json`) nao ativa o caminho VAIML para o decoder
+- misturar `LD_LIBRARY_PATH` com todas as libs do `npu-llm` prepended causa crash no encoder (`LogMessageFatal` em `vaip_dpu_custom_op`)
+
+Probes de VAIML no container com tree npu-llm completa (2026-03-26):
+
+- usando **toda** a tree de libs do npu-llm (sem misturar com ryzen14) + Python 3.10 nativo no container Ubuntu 22.04, o VAIML pass ativou de verdade
+- config VAIML-only (`vaip_vaiml_only.json`) com apenas passes `init`, `vaiml`, `vaiml_partition`
+- o decoder **XINT8** tentou particionar mas os subgrafos QDQ ficaram abaixo do threshold de 2% GOPs; resultado: `operators supported by VAIML: 0 (0.000%)`
+- o decoder **FP32** teve resultado radicalmente diferente:
+  - **235 de 236 ops (99.6%) suportadas pelo VAIML**
+  - **35.84 de 35.84 GOPs (99.999%) suportadas**
+  - 1 subgrafo cobrindo quase o modelo inteiro
+  - porem a compilacao falhou com `sh: 1: aiecompiler: not found`
+- o `aiecompiler` e parte do Vitis AI toolchain proprietario da AMD/Xilinx e nao existe no container nem no host
+
+Leitura correta:
+
+- o VAIML **consegue** particionar 99.6% do decoder Whisper FP32 para NPU
+- o bloqueio final do decoder na NPU e a ausencia do `aiecompiler` para gerar o executavel AIE
+- o decoder XINT8 nao e viavel pelo caminho VAIML; o caminho correto e FP32 → VAIML → BF16 no NPU
+- o config DPU/DD (`vaip_config_npu_2_3.json`) ja inclui `vaiml` e `vaiml_partition` como passes habilitados, mas nao chega a ativa-los efetivamente no host por falta de dependencias
+- misturar libs ryzen14 com npu-llm causa crash por ABI incompativel; usar tree npu-llm completa no container funciona
+- em `2026-03-26` o `aiecompiler` foi localizado no venv 1.4.0 (`venv/bin/aiecompiler`, versao 2024.2.0)
+- a compilacao exigia: locale `en_US.UTF-8`, symlinks de `aie_api/*` para `include/`, kernel headers (`linux-libc-dev`)
+- apos corrigir os include paths e instalar dependencias, o decoder FP32 **compilou com sucesso**:
+  - `flexml-compile Finished with status 0` (ambas fases)
+  - **235 de 236 ops (99.6%) offloaded via VAIML**
+  - **35.84 GOPs (99.999%) na NPU**
+  - `[Vitis AI EP] No. of Operators :   CPU     1  VAIML   235`
+  - `subgraphStat: [{'device': 'VAIML', 'count': 1}]`
+  - compilacao levou ~365 segundos
+- este e o primeiro offload de decoder transformer completo para NPU neste host
+- a investigacao do build from source do ORT+VitisAI EP mostrou que o build falha em GCC 13/14 (issue microsoft/onnxruntime#27097), inviabilizando Fedora 43
+
+### LLM GPU generico e DeepSeek R1
+
+Foi criada uma infra generica de runner GPU que suporta modelos alem do Qwen3.
+
+Novos artefatos:
+
+- `tools/run_llm_gpu_transformers.py` — runner Python generico com suporte a GPTQ e BNB4
+- `tools/run_llm_gpu_container.sh` — container runner generico
+- `tools/run_llm_gpu_measured.sh` — medicao com monitor APU (generalizado do Qwen3)
+- `tools/run_deepseek_r1_70b_gpu.sh` — wrapper dedicado para DeepSeek R1 70B
+
+Descoberta importante: `DeepSeek-R1-Distill-Qwen-72B` nao existe. A serie Qwen distillada vai ate 32B. O modelo 70B usa base Llama: `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`.
+
+Para Q4 GPTQ (~37-42 GB VRAM), o candidato seria `empirischtech/DeepSeek-R1-Distill-Llama-70B-gptq-4bit`. O teste GPTQ no container ROCm falhou por problemas de build do `auto-gptq` e `gptqmodel` no ambiente ROCm. A alternativa mais pratica para 70B em GPU seria `ollama` ou `llama.cpp` com GGUF Q4.
 
 ### Qwen3 no GPU do host
 

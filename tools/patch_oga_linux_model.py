@@ -43,7 +43,10 @@ def patch_genai_config(config_path: Path, custom_ops_library: str, aie_rope_flag
         handle.write("\n")
 
 
-def patch_meta_json(meta_path: Path) -> None:
+def patch_meta_json(meta_path: Path) -> bool:
+    if not meta_path.exists():
+        return False
+
     require_nonempty_file(meta_path, "OGA meta file")
     if is_lfs_pointer(meta_path):
         fail(f"OGA meta file is still a git-lfs pointer: {meta_path}")
@@ -58,6 +61,7 @@ def patch_meta_json(meta_path: Path) -> None:
             patched.append(line)
 
     meta_path.write_text("".join(patched), encoding="utf-8")
+    return True
 
 
 def main() -> None:
@@ -85,10 +89,13 @@ def main() -> None:
         fail(f"missing model directory: {model_dir}")
 
     patch_genai_config(config_path, args.custom_ops_library, args.aie_rope_flag)
-    patch_meta_json(meta_path)
+    patched_meta = patch_meta_json(meta_path)
 
     print(f"[INFO] patched Linux OGA config: {config_path}")
-    print(f"[INFO] patched cache metadata paths: {meta_path}")
+    if patched_meta:
+        print(f"[INFO] patched cache metadata paths: {meta_path}")
+    else:
+        print(f"[INFO] optional cache metadata not present, skipping: {meta_path}")
 
 
 if __name__ == "__main__":
