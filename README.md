@@ -22,10 +22,9 @@ Hoje a resposta e:
 - sim, a stack `VitisAIExecutionProvider` sobe no Linux host e em `Ubuntu 22.04`
 - sim, ja existe prova forte e reproduzivel de offload real para a NPU no host Linux com `ResNet18 XINT8`
 - sim, ja existe prova forte e reproduzivel de offload de transformer para a NPU com `Whisper tiny.en encoder XINT8`
-- nao, `Whisper` ainda nao esta fechado de ponta a ponta na NPU: o decoder XINT8 ja sobe, mas continua inteiro em CPU
+- sim, o decoder Whisper FP32 foi compilado via VAIML com 99.6% dos ops na NPU (235/236), mas a inferencia crasha por incompatibilidade ABI entre VAIML 1.4.0 e XRT 2.23.0
 - sim, ja existe pipeline hibrido ponta a ponta com audio real usando encoder na NPU e decoder FP32 em CPU; hoje o melhor resultado validado ainda e parcial (`"I'm"` no `sample_hf_1.flac`)
-- nao, `LLM` ainda nao esta fechado com prova final de NPU neste host
-- o proximo trabalho imediato agora e fechar `OGA Linux` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`, depois subir `Qwen3-14B-onnx-ryzenai-1.7-hybrid` no caminho hibrido oficial AMD
+- nao, `LLM` ainda nao esta fechado com prova final de NPU neste host; `FastFlowLM` e o caminho mais viavel (suporta `Qwen3.5:9B` na NPU via Linux), mas precisa de kernel 7.0+ e firmware NPU >= 1.1.0.0
 - em paralelo, a trilha `Qwen3` grande em GPU ja esta validada em container `ROCm/PyTorch`: com o split atual `64 GB iGPU / 64 GB CPU`, `Qwen3-14B` e `Qwen3-32B` carregam e geram de verdade na iGPU
 
 ## O que ja foi provado
@@ -136,9 +135,13 @@ Estado local importante desta rodada:
 - isso nao vale como runtime materializado
 - o runner do hub agora falha cedo nesse caso e exige restage a partir da tree Linux oficial
 
-Alternativa em observacao:
+Alternativa em andamento:
 
-- `FastFlowLM` como runtime NPU-first no Linux, caso `OGA` continue bloqueado por binarios proprietarios ausentes
+- `FastFlowLM` 0.9.37 como runtime NPU-first no Linux
+- suporta `Qwen3.5:9B`, `Qwen3:8B`, `Whisper` e outros modelos direto na NPU
+- requer kernel 7.0+ com driver `amdxdna` nativo e firmware NPU >= 1.1.0.0
+- Bazzite/ostree bloqueia troca de kernel por conflito com gaming kmods; proximo passo e instalar distro com kernel 7 nativo (Arch ou Fedora 44)
+- repo clonado em `~/FastFlowLM` com submodules prontos pra build
 
 ## Estado atual do Qwen3 em GPU
 
@@ -312,4 +315,4 @@ Leitura correta desse ultimo comando:
 
 ## Estado atual em uma linha
 
-O host Linux ja provou offload real para CNN e transformer na NPU AMD; o pipeline Whisper hibrido agora executa audio real fim a fim com encoder na NPU, mas o gap imediato virou recuperar a fidelidade do encoder XINT8 e depois tirar o decoder de `CPU only`, antes de voltar para `OGA Linux` com `Phi-3.5` ou um runtime alternativo realmente NPU-first.
+O host Linux ja provou offload real para CNN e transformer na NPU AMD; o decoder Whisper FP32 compilou 99.6% na NPU via VAIML mas crasha na inferencia por ABI mismatch XRT/VAIML; o proximo passo concreto e instalar uma distro com kernel 7.0+ (Arch ou Fedora 44) e rodar `FastFlowLM` com `Qwen3.5:9B` na NPU como primeiro LLM real no device.
