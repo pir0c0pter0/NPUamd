@@ -10,9 +10,10 @@ Fazer a NPU AMD funcionar no Linux host atual, com foco prático em:
 ## Host
 
 - Usuário: `mariostjr`
-- Sistema: Bazzite/Fedora imutável
-- Modelo de gestão: `rpm-ostree`
-- Data deste registro: `2026-03-26`
+- Sistema: CachyOS (Arch-based)
+- Modelo de gestão: `pacman`
+- Data deste registro: `2026-03-27`
+- Kernel: `7.0.0-rc5` (compilado do source)
 - Plataforma NPU confirmada agora: `STX/KRK`
 - PCI ID da NPU: `1022:17f0`
 - Revisão observada da NPU: `rev 11`

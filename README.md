@@ -24,7 +24,7 @@ Hoje a resposta e:
 - sim, ja existe prova forte e reproduzivel de offload de transformer para a NPU com `Whisper tiny.en encoder XINT8`
 - sim, o decoder Whisper FP32 foi compilado via VAIML com 99.6% dos ops na NPU (235/236), mas a inferencia crasha por incompatibilidade ABI entre VAIML 1.4.0 e XRT 2.23.0
 - sim, ja existe pipeline hibrido ponta a ponta com audio real usando encoder na NPU e decoder FP32 em CPU; hoje o melhor resultado validado ainda e parcial (`"I'm"` no `sample_hf_1.flac`)
-- nao, `LLM` ainda nao esta fechado com prova final de NPU neste host; `FastFlowLM` e o caminho mais viavel (suporta `Qwen3.5:9B` na NPU via Linux), mas precisa de kernel 7.0+ e firmware NPU >= 1.1.0.0
+- **sim, LLM ja roda na NPU neste host**: `FastFlowLM v0.9.37` com `Qwen3:0.6B`, `Qwen3:4B` e `Qwen3:8B` gerando de verdade na NPU via kernel `7.0.0-rc5` + firmware `1.1.2.65` + driver `amdxdna 0.6`
 - em paralelo, a trilha `Qwen3` grande em GPU ja esta validada em container `ROCm/PyTorch`: com o split atual `64 GB iGPU / 64 GB CPU`, `Qwen3-14B` e `Qwen3-32B` carregam e geram de verdade na iGPU
 
 ## O que ja foi provado
@@ -108,40 +108,64 @@ Ainda nao vale como prova de NPU:
 - `xrt-smi` atual, porque ainda retorna `0 devices found`
 - checkpoint pequeno `.pt` do exemplo AMD, porque hoje ele e so ponteiro `git-lfs`
 
-## Estado atual de LLM no Linux
+## Estado atual de LLM na NPU
 
-O ponto mais importante desta rodada:
+Marco alcancado em `2026-03-27`:
 
-- a documentacao oficial atual da AMD ja tem uma pagina explicita de `Running LLM on Linux`
-- essa pagina usa como referencia o modelo `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
+- **primeiro LLM rodando na NPU AMD neste host Linux**
+- `FastFlowLM v0.9.37` com `Qwen3:8B` gerando de verdade na NPU
+- tambem validados `Qwen3:4B` e `Qwen3:0.6B`
 
-Isso muda a leitura do projeto:
+Stack que funciona:
 
-- o bloqueio nao e mais "talvez Linux nao tenha fluxo oficial"
-- o bloqueio agora e materializar a instalacao Linux recente da AMD e os blobs reais do modelo
+- sistema: `CachyOS` (Arch-based)
+- kernel: `7.0.0-rc5` (compilado do source, `CONFIG_DRM_ACCEL_AMDXDNA=m`)
+- driver: `amdxdna 0.6` (nativo no kernel 7)
+- firmware: `npu_7.sbin`, versao `1.1.2.65`
+- XRT: `2.21.75` (pacote `xrt` + `xrt-plugin-amdxdna` do CachyOS)
+- runtime: `FastFlowLM 0.9.37` (`.deb` Ubuntu 26.04, funciona com symlink de `libboost_program_options`)
+- NPU device: `/dev/accel/accel0` com 8 colunas
+- `flm validate` passa limpo
 
-No host atual ainda faltam:
+Modelos validados na NPU:
 
-- uma tree `RYZEN_AI_INSTALLATION_PATH` do tipo `ryzen_ai-1.6.1+/venv`
-- `deployment/lib/libonnx_custom_ops.so`
-- `deployment/lib/libryzen_mm.so`
-- `model_benchmark`
-- blobs reais `git-lfs` do modelo `Phi-3.5`
+| Modelo | Tamanho | Status |
+|--------|---------|--------|
+| `qwen3:0.6b` | 663 MB | OK |
+| `qwen3:4b` | 3.1 GB | OK |
+| `qwen3:8b` | 5.7 GB | OK |
 
-Estado local importante desta rodada:
+Como reproduzir:
 
-- existe uma tree `runtime/llm_linux/run_phi35`
-- mas hoje `libonnxruntime-genai.so`, `libonnx_custom_ops.so`, `libryzen_mm.so`, `model_benchmark` e `amd_genai_prompt.txt` nela estao com `0` bytes
-- isso nao vale como runtime materializado
-- o runner do hub agora falha cedo nesse caso e exige restage a partir da tree Linux oficial
+```bash
+flm validate
+flm run qwen3:8b
+```
 
-Alternativa em andamento:
+### Benchmark comparativo: Qwen3:8B em NPU vs GPU vs CPU
 
-- `FastFlowLM` 0.9.37 como runtime NPU-first no Linux
-- suporta `Qwen3.5:9B`, `Qwen3:8B`, `Whisper` e outros modelos direto na NPU
-- requer kernel 7.0+ com driver `amdxdna` nativo e firmware NPU >= 1.1.0.0
-- Bazzite/ostree bloqueia troca de kernel por conflito com gaming kmods; proximo passo e instalar distro com kernel 7 nativo (Arch ou Fedora 44)
-- repo clonado em `~/FastFlowLM` com submodules prontos pra build
+Medido em `2026-03-27` no mesmo host, mesmo modelo `Qwen3:8B Q4`, mesmo prompt.
+
+| Device | Runtime | Prompt eval | Generation | tok/s |
+|--------|---------|-------------|------------|-------|
+| **NPU** | FastFlowLM 0.9.37 | ~20s wall time total (inclui thinking) | — | ~6-7 tok/s estimado |
+| **GPU** (iGPU Radeon 8060S, 95 GiB VRAM) | ollama 0.18.3 + ROCm gfx1150 | 0.11s (185 tok/s) | 6.59s (180 tokens) | **27.3 tok/s** |
+| **CPU** (Ryzen AI MAX+ 395, 32 threads) | ollama 0.18.3 | 0.41s (49 tok/s) | 17.30s (236 tokens) | **13.6 tok/s** |
+
+Leitura correta:
+
+- a GPU iGPU e **2x mais rapida** que CPU em geracao
+- a NPU via FastFlowLM esta funcional mas ainda nao expoe metricas de tok/s; a medicao wall-time inclui overhead de thinking e load
+- o valor da NPU hoje e prova de offload real, nao speedup; o FastFlowLM esta em v0.9.37 e deve melhorar
+- o ollama com ROCm detecta a iGPU `gfx1150` com `HSA_OVERRIDE_GFX_VERSION=11.5.0` e offloads 37/37 layers
+
+Nota: o `FastFlowLM 0.9.36` do pacote CachyOS tem bug no `Qwen3:8B` (crash por assert em vector). O fix esta na v0.9.37, que pode ser extraida do `.deb` Ubuntu 26.04 e usada com `LD_LIBRARY_PATH` + symlink de boost.
+
+Estado anterior da trilha `OGA`:
+
+- a trilha oficial AMD `OGA` com `Phi-3.5` continua bloqueada por falta de tree Linux `ryzen_ai-1.6.1+/venv`
+- a tree local `runtime/llm_linux/run_phi35` ainda tem binarios com `0` bytes (placeholders)
+- essa trilha deixou de ser prioridade agora que `FastFlowLM` resolve o caso LLM na NPU
 
 ## Estado atual do Qwen3 em GPU
 
@@ -315,4 +339,4 @@ Leitura correta desse ultimo comando:
 
 ## Estado atual em uma linha
 
-O host Linux ja provou offload real para CNN e transformer na NPU AMD; o decoder Whisper FP32 compilou 99.6% na NPU via VAIML mas crasha na inferencia por ABI mismatch XRT/VAIML; o proximo passo concreto e instalar uma distro com kernel 7.0+ (Arch ou Fedora 44) e rodar `FastFlowLM` com `Qwen3.5:9B` na NPU como primeiro LLM real no device.
+O host Linux ja provou offload real para CNN, transformer e LLM na NPU AMD; `FastFlowLM v0.9.37` roda `Qwen3:8B` na NPU com kernel `7.0.0-rc5` + firmware `1.1.2.65`; a trilha GPU-only em container `ROCm/PyTorch` suporta ate `Qwen3-32B` na iGPU.

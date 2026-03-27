@@ -4,10 +4,12 @@
 
 Seguir esta ordem, sem desviar para CPU genérico:
 
-1. fechar `OGA Linux` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`
-2. subir `Qwen3-14B-onnx-ryzenai-1.7-hybrid` no caminho híbrido oficial AMD
-3. abrir a frente separada de `Qwen3` grande em GPU, começando pela materialização da stack `ROCm/PyTorch`
-4. manter baselines reproduzíveis para nao regredir (`ResNet18 XINT8` + `Whisper encoder XINT8`)
+1. ~~fechar `OGA Linux` com `amd/Phi-3.5-mini-instruct-onnx-ryzenai-npu`~~ (superado por FastFlowLM)
+2. **LLM na NPU via FastFlowLM (cumprido)** — `Qwen3:8B` rodando na NPU
+3. medir performance comparativa NPU vs GPU vs CPU
+4. subir modelos maiores no FastFlowLM (`llama3.1:8b`, `deepseek-r1:8b`)
+5. fechar Whisper na NPU via `flm run whisper-v3:turbo`
+6. manter baselines reproduzíveis para nao regredir (`ResNet18 XINT8` + `Whisper encoder XINT8`)
 
 ## Passo 1 — CNN na NPU (cumprido)
 
@@ -22,7 +24,25 @@ Seguir esta ordem, sem desviar para CPU genérico:
 - caminho VAIML (BF16) nao funciona nesta tree (falta `libvaip-pass_vaiml_partition.so`)
 - baseline reproduzível: `tools/run_whisper_encoder_xint8_probe.sh`
 
-## Passo 2 — OGA Linux com Phi-3.5 (em progresso)
+## Passo 1c — LLM na NPU via FastFlowLM (cumprido)
+
+Marco alcancado em `2026-03-27`:
+
+- kernel `7.0.0-rc5` compilado do source com `CONFIG_DRM_ACCEL_AMDXDNA=m`
+- `FastFlowLM v0.9.37` instalado via `.deb` Ubuntu 26.04 + symlink de boost
+- `XRT 2.21.75` + `xrt-plugin-amdxdna` instalados via pacman (CachyOS)
+- `flm validate` passa limpo: NPU `/dev/accel/accel0`, 8 colunas, firmware `1.1.2.65`, amdxdna `0.6`, memlock unlimited
+- `Qwen3:0.6B`, `Qwen3:4B` e `Qwen3:8B` geram de verdade na NPU
+- primeiro LLM real neste device NPU AMD no Linux
+
+Como reproduzir:
+
+```bash
+flm validate
+flm run qwen3:8b
+```
+
+## Passo 2 — OGA Linux com Phi-3.5 (superado)
 
 Estado atual:
 
@@ -248,7 +268,13 @@ Estado intermediario importante:
 
 - `tiny_en_decoder_xint8.onnx` ja infere no host, mas ainda fica em `CPU 934` e sem `subgraphStat`
 
+Provas fortes alcancadas em `2026-03-27`:
+
+- `Qwen3:8B` (e `4B`, `0.6B`) gerando na NPU via `FastFlowLM v0.9.37`
+- primeiro LLM real neste device NPU AMD no Linux
+
 Próximas provas fortes a buscar:
 
-- transcrição real Whisper usando NPU (encoder + decoder completos)
-- LLM rodando na NPU via FastFlowLM ou VitisAI EP direto
+- benchmark comparativo NPU vs GPU vs CPU
+- transcrição real Whisper usando NPU (via `flm run whisper-v3:turbo` ou encoder + decoder completos)
+- modelos maiores no FastFlowLM (`llama3.1:8b`, `deepseek-r1:8b`)
