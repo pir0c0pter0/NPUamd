@@ -123,11 +123,22 @@ Marco alcancado em `2026-03-26`:
 - o cache do modelo compilado esta em `/tmp/dec_fp32_vaiml_aie4/dec_fp32_aie4/` no container
 - config usado: `runtime/whisper/configs/vaip_vaiml_only.json`
 
+Bloqueio na inferencia (2026-03-27):
+
+- a sessao ORT carrega com `VAIML 235 / CPU 1` (cache quente, sem recompilacao)
+- `sess.run()` causa segfault em `libvaip_custom_op_VAIML.so` (null pointer em vtable, offset `0x13927`)
+- testado no container Ubuntu 24.04 (glibc 2.39) e no host nativo (Fedora 43, glibc 2.40) — mesmo crash
+- o container Ubuntu 22.04 (glibc 2.35) nao serve porque XRT 2.23.0 precisa de GLIBC_2.38
+- o segfault e na inicializacao do XRT device context pelo VAIML custom op
+- causa provavel: incompatibilidade ABI entre `libvaip_custom_op_VAIML.so` do npu-llm 1.4.0 e XRT 2.23.0 do host
+- o instalador 1.4.0 nao inclui XRT; depende do XRT do sistema
+- o xclbin compilado (`vaiml_par_0/0/unified-4x4.xclbin`) existe e parece valido
+
 Proximo passo:
 
-- rodar inferencia real do decoder FP32 compilado na NPU e medir latencia
-- integrar no pipeline hibrido `tools/run_whisper_full_hybrid.sh` (encoder XINT8 NPU + decoder FP32 VAIML NPU)
-- medir transcricao completa com audio real
+- tentar compilar XRT numa versao mais antiga compativel com o VAIML do 1.4.0
+- ou investigar se ha uma versao mais recente do VAIML (no instalador 1.7.0 por exemplo) que seja compativel com XRT 2.23.0
+- ou tentar o `flexmlrt` diretamente para carregar o xclbin sem depender do custom op VAIML
 
 ## O que nao fazer
 
