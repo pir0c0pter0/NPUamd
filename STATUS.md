@@ -597,3 +597,81 @@ Os próximos passos do hub devem ser:
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/sample_hf_1.flac`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/whisper_hello.wav`
 - `/var/home/mariostjr/Documents/hubs/NPUamd/runtime/whisper/calib`
+
+## LTX-2.3 Video Generation on Radeon 8060S (gfx1151)
+
+Data: 2026-04-01
+
+### O que é
+
+LTX-2.3 é um modelo DiT de 22B parâmetros da Lightricks para geração de vídeo+áudio a partir de texto.
+Repositório: `https://github.com/Lightricks/LTX-2`
+Modelo: `https://huggingface.co/Lightricks/LTX-2.3`
+
+### Instalação
+
+Localização: `/home/mariostjr/Documentos/hubs/LTX-2/`
+
+Stack:
+- Python 3.12.13 (via uv)
+- PyTorch 2.12.0.dev20260328+rocm7.2 (nightly, único que funciona com gfx1151)
+- ROCm 7.2.0 (sistema)
+- transformers 4.52.4 (5.x quebra API do Gemma3)
+- torchaudio 2.11.0.dev20260330+rocm7.2
+
+Modelos descarregados em `LTX-2/models/`:
+- `ltx-2.3-22b-distilled.safetensors` (43GB) - modelo principal
+- `ltx-2.3-spatial-upscaler-x2-1.1.safetensors` (950MB) - upscaler 2x
+- `ltx-2.3-22b-distilled-lora-384.safetensors` (7.1GB) - LoRA distilled
+- `gemma3/` (23GB) - text encoder Gemma 3 12B (google/gemma-3-12b-it-qat-q4_0-unquantized)
+
+### Workarounds para ROCm gfx1151
+
+1. **LD_PRELOAD obrigatório**: `LD_PRELOAD="/usr/lib/libpthread.so.0 /opt/rocm/lib/librocprofiler-sdk.so.1"`
+   - Sem isto, torch crasha ao importar (conflito entre libs ROCm 7.2 do sistema e ROCm bundled no wheel)
+
+2. **TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1**: ativa attention experimental para gfx1151
+
+3. **Tiling agressivo no VAE decode**: sem tiling, o VAE decoder crasha o driver ROCm ao processar vídeos com muitos frames.
+   Solução: tiles espaciais de 256px (overlap 64px) + temporais de 16 frames (overlap 8 frames)
+
+4. **transformers pinado a 4.52.x**: versões 5.x mudaram a API do Gemma3 (removeram `rope_local_base_freq`, `rotary_emb_local`)
+
+### Scripts de execução
+
+- `LTX-2/run_ltx_distilled.py` - Pipeline distilled (8+3 steps, mais rápido) com GPU tiling
+- `LTX-2/run_ltx.py` - Pipeline one-stage (30 steps) com CPU decode fallback
+
+### Comando para gerar vídeo
+
+```bash
+cd /home/mariostjr/Documentos/hubs/LTX-2
+LD_PRELOAD="/usr/lib/libpthread.so.0 /opt/rocm/lib/librocprofiler-sdk.so.1" \
+TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1 \
+.venv/bin/python run_ltx_distilled.py \
+  --distilled-checkpoint-path models/ltx-2.3-22b-distilled.safetensors \
+  --spatial-upsampler-path models/ltx-2.3-spatial-upscaler-x2-1.1.safetensors \
+  --gemma-root models/gemma3 \
+  --lora models/ltx-2.3-22b-distilled-lora-384.safetensors 0.8 \
+  --prompt "YOUR PROMPT" \
+  --output-path output.mp4 \
+  --num-frames 249 \
+  --height 512 --width 768
+```
+
+### Benchmarks (Radeon 8060S, 64GB VRAM, ROCm 7.2)
+
+| Vídeo | Stage 1 | Stage 2 | VAE Decode | Total |
+|-------|---------|---------|------------|-------|
+| 1s (25 frames, 512x768) | 13s | 13s | 7s (GPU tiled) | ~33s |
+| 10s (249 frames, 512x768) | 76s | 4min03s | 3min35s (GPU tiled) | ~8min |
+
+Pipeline distilled: 8 steps (stage 1) + 3 steps (stage 2) + tiled VAE decode.
+Resolução de saída: 1024x1536 (upsampled 2x pelo spatial upscaler).
+
+### Limitações conhecidas
+
+- gfx1151 é experimental no ROCm/PyTorch - pode crashar com operações GPU muito longas
+- Sem tiling, vídeos >1s crasham o driver HSA
+- O nightly do PyTorch é instável - pode quebrar com atualizações
+- MIOpen gera muitos warnings (inofensivos) na primeira execução
